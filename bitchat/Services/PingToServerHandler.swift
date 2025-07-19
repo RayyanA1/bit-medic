@@ -36,11 +36,17 @@ class PingToServerHandler {
         }
         
         // Extract the actual message after the prefix
-        let extractedMessage = String(message.dropFirst(prefix.count))
+        let extractedMessage = String(message.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
         
         print("Received PingToServer message: \(extractedMessage)")
         
-        // Check internet connectivity
+        // Handle BitMedic search queries specially
+        if extractedMessage.hasPrefix("/search?q=") {
+            handleBitMedicSearch(extractedMessage)
+            return
+        }
+        
+        // Check internet connectivity for other requests
         guard isConnectedToInternet else {
             print("No internet connection available. Cannot forward message to server.")
             return
@@ -141,6 +147,130 @@ class PingToServerHandler {
             if let data = data, let errorString = String(data: data, encoding: .utf8) {
                 print("Error response: \(errorString)")
             }
+        }
+    }
+    
+    // MARK: - BitMedic Search Handler
+    private func handleBitMedicSearch(_ searchQuery: String) {
+        // Extract search term from "/search?q=term" format
+        let queryPrefix = "/search?q="
+        guard searchQuery.hasPrefix(queryPrefix) else { return }
+        
+        let searchTerm = String(searchQuery.dropFirst(queryPrefix.count))
+            .removingPercentEncoding ?? ""
+        
+        print("BitMedic search query: \(searchTerm)")
+        
+        // Call real API
+        searchPatients(searchTerm: searchTerm)
+    }
+    
+    private func searchPatients(searchTerm: String) {
+        guard !searchTerm.isEmpty else {
+            showSearchResponse("Results: Please enter a patient name to search")
+            return
+        }
+        
+        // URL encode the search term
+        guard let encodedSearchTerm = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://partialsearchpatientname-uob3euoulq-uc.a.run.app/?name=\(encodedSearchTerm)") else {
+            showSearchResponse("Results: Invalid search term")
+            return
+        }
+        
+        print("Calling patient search API: \(url)")
+        
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                self?.handlePatientSearchResponse(data: data, response: response, error: error, searchTerm: searchTerm)
+            }
+        }
+        
+        task.resume()
+    }
+    
+    private func handlePatientSearchResponse(data: Data?, response: URLResponse?, error: Error?, searchTerm: String) {
+        if let error = error {
+            print("Patient search API error: \(error.localizedDescription)")
+            showSearchResponse("Results: Search failed - \(error.localizedDescription)")
+            return
+        }
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            showSearchResponse("Results: Invalid server response")
+            return
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            showSearchResponse("Results: Server error (\(httpResponse.statusCode))")
+            return
+        }
+        
+        guard let data = data else {
+            showSearchResponse("Results: No data received from server")
+            return
+        }
+        
+        do {
+            // Try to parse as JSON array first
+            if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                handlePatientJSONResponse(jsonArray, searchTerm: searchTerm)
+            } else {
+                // Fall back to plain text response
+                let responseText = String(data: data, encoding: .utf8) ?? "Unable to decode response"
+                showSearchResponse("Results: \(responseText)")
+            }
+        } catch {
+            // If JSON parsing fails, treat as plain text
+            let responseText = String(data: data, encoding: .utf8) ?? "Unable to decode response"
+            showSearchResponse("Results: \(responseText)")
+        }
+    }
+    
+    private func handlePatientJSONResponse(_ patients: [[String: Any]], searchTerm: String) {
+        if patients.isEmpty {
+            showSearchResponse("Results: No patients found for '\(searchTerm)'")
+            return
+        }
+        
+        // Extract patient names or relevant information
+        var patientList: [String] = []
+        
+        for patient in patients.prefix(5) { // Limit to first 5 results
+            if let name = patient["name"] as? String {
+                patientList.append(name)
+            } else if let firstName = patient["firstName"] as? String,
+                      let lastName = patient["lastName"] as? String {
+                patientList.append("\(firstName) \(lastName)")
+            } else {
+                // Fallback: show all available fields
+                let fields = patient.compactMap { key, value in
+                    "\(key): \(value)"
+                }.joined(separator: ", ")
+                patientList.append(fields)
+            }
+        }
+        
+        let responseMessage = "Results: " + patientList.joined(separator: " | ")
+        showSearchResponse(responseMessage)
+    }
+    
+    private func showSearchResponse(_ message: String) {
+        // Send response back through the mesh network
+        showFeedbackMessage(message)
+        
+        // Also notify the BitMedic UI
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("BitMedicSearchResponse"),
+                object: BitchatMessage(
+                    sender: "system",
+                    content: message,
+                    timestamp: Date(),
+                    isRelay: false,
+                    isPrivate: false
+                )
+            )
         }
     }
 }

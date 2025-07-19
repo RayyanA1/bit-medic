@@ -1,0 +1,404 @@
+//
+// BitMedicView.swift
+// bitchat - BitMedic Custom UI
+//
+// This is free and unencumbered software released into the public domain.
+// For more information, see <https://unlicense.org>
+//
+
+import SwiftUI
+
+struct BitMedicView: View {
+    @EnvironmentObject var viewModel: ChatViewModel
+    @StateObject private var searchViewModel = BitMedicSearchViewModel()
+    @State private var searchText = ""
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color.black : Color.white
+    }
+    
+    private var primaryColor: Color {
+        Color(red: 0.2, green: 0.6, blue: 1.0) // BitMedic blue
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? Color.white : Color.black
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? Color.gray : Color.secondary
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            headerView
+            
+            Spacer()
+            
+            // Main content area
+            VStack(spacing: 32) {
+                // BitMedic logo/title
+                VStack(spacing: 8) {
+                    Image(systemName: "cross.case.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(primaryColor)
+                    
+                    Text("BitMedic")
+                        .font(.system(size: 32, weight: .bold, design: .default))
+                        .foregroundColor(textColor)
+                    
+                    Text("Medical Search Network")
+                        .font(.system(size: 16, weight: .medium, design: .default))
+                        .foregroundColor(secondaryTextColor)
+                }
+                
+                // Search input
+                VStack(spacing: 16) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(secondaryTextColor)
+                            .font(.system(size: 18))
+                        
+                        TextField("Search for medical professionals...", text: $searchText)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .font(.system(size: 18))
+                            .foregroundColor(textColor)
+                            .onSubmit {
+                                performSearch()
+                            }
+                            .onChange(of: searchText) { newValue in
+                                // Clear results when user starts typing new search
+                                if newValue != searchViewModel.lastSearchTerm {
+                                    searchViewModel.clearResults()
+                                }
+                            }
+                        
+                        if searchViewModel.isLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else if !searchText.isEmpty {
+                            Button(action: {
+                                searchText = ""
+                                searchViewModel.clearResults()
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(secondaryTextColor)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(0.1))
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                    
+                    // Search button
+                    Button(action: performSearch) {
+                        HStack {
+                            Image(systemName: "network")
+                                .font(.system(size: 16))
+                            Text("Search Network")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(searchText.isEmpty ? Color.gray : primaryColor)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(searchText.isEmpty || searchViewModel.isLoading)
+                }
+                .padding(.horizontal, 32)
+                
+                // Search results
+                if !searchViewModel.results.isEmpty {
+                    searchResultsView
+                } else if searchViewModel.hasSearched && !searchViewModel.isLoading {
+                    Text("No results found")
+                        .font(.system(size: 16))
+                        .foregroundColor(secondaryTextColor)
+                        .padding()
+                }
+            }
+            
+            Spacer()
+            
+            // Network status
+            networkStatusView
+        }
+        .background(backgroundColor)
+        .onAppear {
+            // Auto-join the secure BitMedic channel
+            joinSecureChannel()
+            // Set up search result handling
+            searchViewModel.setup(chatViewModel: viewModel)
+        }
+    }
+    
+    private var headerView: some View {
+        HStack {
+            // Connection status indicator
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(viewModel.isConnected ? Color.green : Color.red)
+                    .frame(width: 8, height: 8)
+                
+                Text(viewModel.isConnected ? "Connected" : "Offline")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(secondaryTextColor)
+            }
+            
+            Spacer()
+            
+            // Peer count
+            HStack(spacing: 4) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 12))
+                Text("\(viewModel.connectedPeers.filter { $0 != viewModel.meshService.myPeerID }.count)")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundColor(secondaryTextColor)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+    
+    private var searchResultsView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Search Results")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(textColor)
+                
+                Spacer()
+                
+                Text("\(searchViewModel.results.count) found")
+                    .font(.system(size: 14))
+                    .foregroundColor(secondaryTextColor)
+            }
+            .padding(.horizontal, 32)
+            .padding(.bottom, 16)
+            
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(searchViewModel.results, id: \.self) { result in
+                        searchResultRow(result: result)
+                    }
+                }
+                .padding(.horizontal, 32)
+            }
+            .frame(maxHeight: 300)
+        }
+    }
+    
+    private func searchResultRow(result: String) -> some View {
+        HStack {
+            // Medical professional icon
+            Image(systemName: "stethoscope")
+                .font(.system(size: 16))
+                .foregroundColor(primaryColor)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(result)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(textColor)
+                
+                Text("Medical Professional")
+                    .font(.system(size: 14))
+                    .foregroundColor(secondaryTextColor)
+            }
+            
+            Spacer()
+            
+            Button(action: {
+                // Future: Add contact functionality
+            }) {
+                Text("Contact")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(primaryColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(primaryColor, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(colorScheme == .dark ? Color.gray.opacity(0.1) : Color.gray.opacity(0.05))
+        )
+    }
+    
+    private var networkStatusView: some View {
+        VStack(spacing: 8) {
+            if searchViewModel.isLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Searching mesh network...")
+                        .font(.system(size: 14))
+                        .foregroundColor(secondaryTextColor)
+                }
+            } else {
+                Text("Secure BitMedic Network")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(primaryColor)
+            }
+            
+            Text("Channel: bitmedic-secure")
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundColor(secondaryTextColor)
+        }
+        .padding(.bottom, 16)
+    }
+    
+    private func performSearch() {
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        searchViewModel.performSearch(query: trimmedSearch, chatViewModel: viewModel)
+    }
+    
+    private func joinSecureChannel() {
+        let secureChannel = "bitmedic-secure"
+        let channelPassword = "bitmedic-secure" // Hardcoded secure password
+        
+        // Join the secure channel if not already joined
+        if !viewModel.joinedChannels.contains(secureChannel) {
+            let success = viewModel.joinChannel(secureChannel, password: channelPassword)
+            if success {
+                print("Successfully joined secure BitMedic channel")
+            } else {
+                print("Failed to join secure BitMedic channel")
+            }
+        }
+        
+        // Switch to the secure channel
+        viewModel.switchToChannel(secureChannel)
+    }
+}
+
+// MARK: - Search View Model
+class BitMedicSearchViewModel: ObservableObject {
+    @Published var isLoading = false
+    @Published var results: [String] = []
+    @Published var hasSearched = false
+    @Published var lastSearchTerm = ""
+    
+    private var chatViewModel: ChatViewModel?
+    private var searchResponseTimer: Timer?
+    
+    func setup(chatViewModel: ChatViewModel) {
+        self.chatViewModel = chatViewModel
+        
+        // Listen for incoming messages that might be search responses
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleIncomingMessage(_:)),
+            name: NSNotification.Name("BitMedicSearchResponse"),
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        searchResponseTimer?.invalidate()
+    }
+    
+    func performSearch(query: String, chatViewModel: ChatViewModel) {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        hasSearched = true
+        lastSearchTerm = query
+        results = []
+        
+        // Send search message to the mesh network
+        let searchMessage = "PingToServer: /search?q=\(query)"
+        chatViewModel.sendMessage(searchMessage)
+        
+        // Set up timeout for search response (10 seconds)
+        searchResponseTimer?.invalidate()
+        searchResponseTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                // If no results received, show mock results for demo
+                if self?.results.isEmpty == true {
+                    self?.showMockResults(for: query)
+                }
+            }
+        }
+    }
+    
+    func clearResults() {
+        results = []
+        hasSearched = false
+        lastSearchTerm = ""
+        isLoading = false
+        searchResponseTimer?.invalidate()
+    }
+    
+    @objc private func handleIncomingMessage(_ notification: Notification) {
+        guard let message = notification.object as? BitchatMessage else { return }
+        
+        // Check if this is a search response
+        if message.content.hasPrefix("Results:") {
+            DispatchQueue.main.async {
+                self.processSearchResponse(message.content)
+                self.isLoading = false
+                self.searchResponseTimer?.invalidate()
+            }
+        }
+    }
+    
+    private func processSearchResponse(_ content: String) {
+        // Parse "Results: John Doe, Jane Smith, Jack Sparrow" format
+        let resultsPrefix = "Results:"
+        guard content.hasPrefix(resultsPrefix) else { return }
+        
+        let resultsString = String(content.dropFirst(resultsPrefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if resultsString.isEmpty {
+            results = []
+        } else {
+            results = resultsString.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
+    }
+    
+    private func showMockResults(for query: String) {
+        // Show mock results for demo purposes
+        let mockResults = [
+            "Dr. Sarah Johnson",
+            "Dr. Michael Chen",
+            "Dr. Emily Rodriguez",
+            "Dr. David Kim",
+            "Dr. Lisa Williams"
+        ].filter { $0.lowercased().contains(query.lowercased()) || query.lowercased().contains($0.lowercased().components(separatedBy: " ").last ?? "") }
+        
+        if mockResults.isEmpty {
+            // Show some default results if no match
+            results = ["Dr. John Smith", "Dr. Mary Johnson"]
+        } else {
+            results = Array(mockResults.prefix(5))
+        }
+    }
+}
+
+struct BitMedicView_Previews: PreviewProvider {
+    static var previews: some View {
+        BitMedicView()
+            .environmentObject(ChatViewModel())
+    }
+}
