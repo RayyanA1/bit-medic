@@ -102,6 +102,7 @@ class PingToServerHandler {
         guard let chatViewModel = chatViewModel else { return }
         
         DispatchQueue.main.async {
+            // Add to local messages for visibility
             let systemMessage = BitchatMessage(
                 sender: "system",
                 content: message,
@@ -110,6 +111,9 @@ class PingToServerHandler {
                 isPrivate: false
             )
             chatViewModel.messages.append(systemMessage)
+            
+            // Send response back through the mesh network
+            chatViewModel.sendMessage(message)
         }
     }
     
@@ -233,26 +237,27 @@ class PingToServerHandler {
             return
         }
         
-        // Extract patient names or relevant information
-        var patientList: [String] = []
-        
-        for patient in patients.prefix(5) { // Limit to first 5 results
-            if let name = patient["name"] as? String {
-                patientList.append(name)
-            } else if let firstName = patient["firstName"] as? String,
-                      let lastName = patient["lastName"] as? String {
-                patientList.append("\(firstName) \(lastName)")
+        // Return the raw JSON for typeahead functionality
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: Array(patients.prefix(5)))
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                showSearchResponse("Results: \(jsonString)")
             } else {
-                // Fallback: show all available fields
-                let fields = patient.compactMap { key, value in
-                    "\(key): \(value)"
-                }.joined(separator: ", ")
-                patientList.append(fields)
+                // Fallback to text format
+                let patientList = patients.prefix(5).compactMap { patient in
+                    patient["name"] as? String
+                }
+                let responseMessage = "Results: " + patientList.joined(separator: " | ")
+                showSearchResponse(responseMessage)
             }
+        } catch {
+            // Fallback to text format
+            let patientList = patients.prefix(5).compactMap { patient in
+                patient["name"] as? String
+            }
+            let responseMessage = "Results: " + patientList.joined(separator: " | ")
+            showSearchResponse(responseMessage)
         }
-        
-        let responseMessage = "Results: " + patientList.joined(separator: " | ")
-        showSearchResponse(responseMessage)
     }
     
     private func showSearchResponse(_ message: String) {

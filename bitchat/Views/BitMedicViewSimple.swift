@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import Network
 
 struct Patient: Codable, Identifiable {
     let id: Int
@@ -26,6 +27,11 @@ struct BitMedicViewSimple: View {
     @State private var showingSuggestions = false
     @State private var selectedPatient: Patient?
     @State private var isSearching = false
+    @State private var isConnectedToInternet = false
+    @State private var connectivityTimer: Timer?
+    
+    private let networkMonitor = NWPathMonitor()
+    private let networkQueue = DispatchQueue(label: "NetworkMonitor")
     
     var body: some View {
         VStack {
@@ -82,6 +88,13 @@ struct BitMedicViewSimple: View {
         }
         .onAppear {
             joinSecureChannel()
+            startNetworkMonitoring()
+            setupNotificationObserver()
+            startPeriodicConnectivityCheck()
+        }
+        .onDisappear {
+            networkMonitor.cancel()
+            connectivityTimer?.invalidate()
         }
     }
     
@@ -108,6 +121,22 @@ struct BitMedicViewSimple: View {
                     Spacer()
                     
                     Text("Peers: \(viewModel.connectedPeers.count)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                
+                HStack {
+                    Circle()
+                        .fill(isConnectedToInternet ? Color.green : Color.red)
+                        .frame(width: 8, height: 8)
+                    
+                    Text("Internet: \(isConnectedToInternet ? "Connected" : "Offline")")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Spacer()
+                    
+                    Text("Search Mode: \(isConnectedToInternet ? "Direct API" : "Via Mesh")")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
@@ -235,6 +264,22 @@ struct BitMedicViewSimple: View {
         
         isSearching = true
         
+        // Test connectivity immediately before search to ensure current status
+        testInternetConnectivity()
+        
+        // Add a small delay to allow connectivity test to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if self.isConnectedToInternet {
+                // Direct API call when online
+                self.searchPatientsDirectly(searchTerm)
+            } else {
+                // Use mesh network when offline
+                self.searchPatientsViaMesh(searchTerm)
+            }
+        }
+    }
+    
+    private func searchPatientsDirectly(_ searchTerm: String) {
         guard let encodedSearchTerm = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://partialsearchpatientname-uob3euoulq-uc.a.run.app/?name=\(encodedSearchTerm)") else {
             isSearching = false
@@ -249,6 +294,21 @@ struct BitMedicViewSimple: View {
         }
         
         task.resume()
+    }
+    
+    private func searchPatientsViaMesh(_ searchTerm: String) {
+        // Send search request via mesh network
+        let searchMessage = "PingToServer: /search?q=\(searchTerm)"
+        viewModel.sendMessage(searchMessage)
+        
+        // Set a timeout for mesh search
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+            if self.isSearching {
+                self.isSearching = false
+                self.patients = []
+                self.showingSuggestions = false
+            }
+        }
     }
     
     private func handleAPIResponse(data: Data?, response: URLResponse?, error: Error?) {
@@ -319,5 +379,118 @@ struct BitMedicViewSimple: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .medium
         return formatter.string(from: date)
+    }
+    
+    private func startNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { [self] path in
+            DispatchQueue.main.async {
+                // First check if any network interface is available
+                let hasNetworkInterface = path.status == .satisfied
+                
+                if hasNetworkInterface {
+                    // Test actual internet connectivity
+                    self.testInternetConnectivity()
+                } else {
+                    self.isConnectedToInternet = false
+                }
+            }
+        }
+        networkMonitor.start(queue: networkQueue)
+        
+        // Initial connectivity test
+        testInternetConnectivity()
+    }
+    
+    private func testInternetConnectivity() {
+        // Use a lightweight endpoint to test connectivity
+        guard let url = URL(string: "https://www.google.com") else {
+            isConnectedToInternet = false
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 5.0
+        
+        let task = URLSession.shared.dataTask(with: request) { _, response, error in
+            DispatchQueue.main.async {
+                if let httpResponse = response as? HTTPURLResponse {
+                    self.isConnectedToInternet = httpResponse.statusCode == 200
+                } else {
+                    self.isConnectedToInternet = false
+                }
+            }
+        }
+        
+        task.resume()
+    }
+    
+    private func startPeriodicConnectivityCheck() {
+        // Check connectivity every 10 seconds
+        connectivityTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+            self.testInternetConnectivity()
+        }
+    }
+    
+    private func setupNotificationObserver() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("BitMedicSearchResponse"),
+            object: nil,
+            queue: .main
+        ) { notification in
+            if let message = notification.object as? BitchatMessage {
+                self.handleMeshSearchResponse(message.content)
+            }
+        }
+    }
+    
+    private func handleMeshSearchResponse(_ content: String) {
+        // Stop searching indicator
+        isSearching = false
+        
+        // Check if this is a patient search response
+        if content.hasPrefix("Results: ") {
+            let responseContent = String(content.dropFirst("Results: ".count))
+            
+            // Try to parse as JSON if it looks like structured data
+            if responseContent.hasPrefix("[") && responseContent.hasSuffix("]") {
+                // This looks like JSON array
+                if let data = responseContent.data(using: .utf8) {
+                    do {
+                        let decodedPatients = try JSONDecoder().decode([Patient].self, from: data)
+                        self.patients = decodedPatients
+                        self.showingSuggestions = !decodedPatients.isEmpty
+                        return
+                    } catch {
+                        print("Failed to decode mesh response as patients: \(error)")
+                    }
+                }
+            }
+            
+            // Fallback: treat as simple text response
+            // Try to extract patient info from text format
+            let patientStrings = responseContent.components(separatedBy: " | ")
+            var extractedPatients: [Patient] = []
+            
+            for (index, patientString) in patientStrings.enumerated() {
+                // Create a simple patient from the string
+                let patient = Patient(
+                    id: 999900 + index, // Temporary ID for mesh responses
+                    name: patientString,
+                    DOB: nil,
+                    address: nil,
+                    phone_number: nil,
+                    number_of_previous_visits: nil,
+                    number_of_previous_admissions: nil,
+                    date_of_last_admission: nil,
+                    patient_notes: nil,
+                    last_record_update: nil
+                )
+                extractedPatients.append(patient)
+            }
+            
+            self.patients = extractedPatients
+            self.showingSuggestions = !extractedPatients.isEmpty
+        }
     }
 }
