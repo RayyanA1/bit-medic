@@ -59,3 +59,20 @@ __pycache__/
 ## Temporary files
 *.tmp
 *.temp
+
+## Backup files
+*.backup
+*\ 2.*
+
+## VS Code
+.vscode/
+
+## Archive files
+*.ipa
+*.app
+
+## Duplicate project files
+*\ 2.xcodeproj/
+
+## Platform-specific duplicates
+*.storyboard.ios
