@@ -9,21 +9,25 @@
 /* Begin PBXBuildFile section */
 		0245710AEAA58AD0A1425234 /* OptimizedBloomFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB043CA5EEB9AC8B07D61E97 /* OptimizedBloomFilter.swift */; };
 		064E1DB9D0CAD27E810828DD /* Info.plist.backup in Resources */ = {isa = PBXBuildFile; fileRef = 92B75E0496E71956EFA57A23 /* Info.plist.backup */; };
+		06918D68456D9E7487F2FAE7 /* PatientViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FCD7BE13991D970E6B83DE /* PatientViewModel.swift */; };
 		0DAFF1DDE9BA83FF648D5AB3 /* BitchatMessageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA8FF26ABDC1C642A8C7AE5 /* BitchatMessageTests.swift */; };
 		0E4B170BF0E7196E90221FAC /* PingToServerHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38ADFA370907822F1B71F09C /* PingToServerHandler.swift */; };
 		10E68BB889356219189E38EC /* BitchatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF625BB3AD919322C01A46B2 /* BitchatApp.swift */; };
 		17901751FD8010AFC8E750F2 /* bitchatShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 61F92EBA29C47C0FCC482F1F /* bitchatShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1A1436C586182E44D7C811D0 /* PatientViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FCD7BE13991D970E6B83DE /* PatientViewModel.swift */; };
 		1D9674FA5F998503831DC281 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A08E03AA0C63E97C91749AEC /* ContentView.swift */; };
 		1F48A8CEEE9399D1EBD08F0C /* OptimizedBloomFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB043CA5EEB9AC8B07D61E97 /* OptimizedBloomFilter.swift */; };
 		24F17B1446E13F42652B7B08 /* PasswordProtectedChannelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036A1A705AAF9EC21F4354BE /* PasswordProtectedChannelTests.swift */; };
+		2515CA285182617055604E00 /* PatientSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40ECA5518D55A4BD8895112E /* PatientSearchView.swift */; };
+		255AD15A2D15B1BF94EF1153 /* PatientRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C96601C2E7F142082AF10D03 /* PatientRepository.swift */; };
 		2E71E320EA921498C57E023B /* BitchatMessageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA8FF26ABDC1C642A8C7AE5 /* BitchatMessageTests.swift */; };
 		31D147471B9F4E2815352DDA /* LinkPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC141774F6671FCDC347DC7 /* LinkPreviewView.swift */; };
+		35736A18F4E2A77A8509CBEA /* PatientSearchHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9204D970FCBFEF37D95EBE2 /* PatientSearchHandler.swift */; };
+		3AF596D7A812255CBF07949F /* Patient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477E75501586125DDC6E8FD0 /* Patient.swift */; };
 		4274B6016F755946FBF2513E /* MessageRetentionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A85BFDDE65B4CD8BDF6DDB /* MessageRetentionService.swift */; };
-		45A7E30927422E3B0088E6EB /* Info 2.plist in Resources */ = {isa = PBXBuildFile; fileRef = EECF3757F2DFE4213D290096 /* Info 2.plist */; };
 		4B747085D07A1BCE0F5BA612 /* BinaryProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2136C3E22D02D4A8DBE7EAB /* BinaryProtocol.swift */; };
-		4DC6562C882AAC5F80DB1246 /* LaunchScreen.storyboard.ios in Resources */ = {isa = PBXBuildFile; fileRef = D112DB3FB47481D2837C763D /* LaunchScreen.storyboard.ios */; };
 		4E778E5A414571ACAC2A0F01 /* MessageRetentionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A85BFDDE65B4CD8BDF6DDB /* MessageRetentionService.swift */; };
-		5BBA49B8BBC34AC05F6D4624 /* Info 2.plist in Resources */ = {isa = PBXBuildFile; fileRef = EECF3757F2DFE4213D290096 /* Info 2.plist */; };
+		5AB7F696C6FBECDAE8B68601 /* PatientSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40ECA5518D55A4BD8895112E /* PatientSearchView.swift */; };
 		5D95F2BFBE257A1225998389 /* BatteryOptimizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED176FF3B274E35C2D827894 /* BatteryOptimizer.swift */; };
 		61C81ED5F679D5E973EE0C07 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3448F84BF86A42A3CC4A9379 /* NotificationService.swift */; };
 		6DE056E1EE9850E9FBF50157 /* BitchatProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 229F17B68CFF7AB1BC91C847 /* BitchatProtocol.swift */; };
@@ -36,6 +40,7 @@
 		7DCA0DBCB8884E3B31C7BCE3 /* CompressionUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F149C43D1915831B60FE09 /* CompressionUtil.swift */; };
 		7DD72D928FF9DD3CA81B46B0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A69677D382F1C3D5ED03F7D /* Assets.xcassets */; };
 		846E2B446E36639159704730 /* BloomFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB3A8FE16333ED12FCB8ACB /* BloomFilterTests.swift */; };
+		892664D71EA5DEE6A1B9E0A0 /* PatientRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C96601C2E7F142082AF10D03 /* PatientRepository.swift */; };
 		8DCEEA289EF7C49E7CD38B08 /* DeliveryTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B9C3EDF3BC73D3BC106DA4 /* DeliveryTracker.swift */; };
 		8F0BFC2D2B2A5E7B70C3B485 /* BinaryProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D535D9CE0B875F47402290 /* BinaryProtocolTests.swift */; };
 		8F737CE0435792CC2AD65FCB /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 136696FC4436A02D98CE6A77 /* KeychainManager.swift */; };
@@ -46,6 +51,7 @@
 		ABAF130D88561F4A646F0430 /* AppInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 763E0DBA9492A654FC0CDCB9 /* AppInfoView.swift */; };
 		AD11E46940D742AEAF547EB2 /* AppInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 763E0DBA9492A654FC0CDCB9 /* AppInfoView.swift */; };
 		ADC66F95FBD513B10411ADB3 /* MessagePaddingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE9CDF66D4E52D268851048 /* MessagePaddingTests.swift */; };
+		AF10BC0C6FDC3BEFC21F89AA /* PatientSearchHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9204D970FCBFEF37D95EBE2 /* PatientSearchHandler.swift */; };
 		B0CA7796B2B2AC2B33F84548 /* CompressionUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F149C43D1915831B60FE09 /* CompressionUtil.swift */; };
 		BC28BE9D0792847556BFC457 /* Info.plist.backup in Resources */ = {isa = PBXBuildFile; fileRef = 92B75E0496E71956EFA57A23 /* Info.plist.backup */; };
 		BCCFEDC1EBE59323C3C470BF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A69677D382F1C3D5ED03F7D /* Assets.xcassets */; };
@@ -59,7 +65,7 @@
 		D948085736ED8E736C1DE3B0 /* BluetoothMeshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C3D880FF8AE1673B20E1E3 /* BluetoothMeshService.swift */; };
 		DDA1DFAB1FF7AADE52DC0F53 /* EncryptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC1563390A15C042D059CF9 /* EncryptionService.swift */; };
 		EA5ACAC19CF1E6C64741C12C /* PingToServerHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38ADFA370907822F1B71F09C /* PingToServerHandler.swift */; };
-		EA763998F218C8E0C8F5679D /* LaunchScreen.storyboard.ios in Resources */ = {isa = PBXBuildFile; fileRef = D112DB3FB47481D2837C763D /* LaunchScreen.storyboard.ios */; };
+		EAFE7404C9D1A37502886A63 /* Patient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477E75501586125DDC6E8FD0 /* Patient.swift */; };
 		F00B713D5053617FB5F3F1BE /* MessagePaddingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE9CDF66D4E52D268851048 /* MessagePaddingTests.swift */; };
 		F455F011B3B648ADA233F998 /* BinaryProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2136C3E22D02D4A8DBE7EAB /* BinaryProtocol.swift */; };
 		FB8819B4C84FAFEF5C36B216 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 136696FC4436A02D98CE6A77 /* KeychainManager.swift */; };
@@ -117,9 +123,12 @@
 		3A556661F74B7D5AE2F0521B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3A69677D382F1C3D5ED03F7D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3FA8FF26ABDC1C642A8C7AE5 /* BitchatMessageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitchatMessageTests.swift; sourceTree = "<group>"; };
+		40ECA5518D55A4BD8895112E /* PatientSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientSearchView.swift; sourceTree = "<group>"; };
+		477E75501586125DDC6E8FD0 /* Patient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Patient.swift; sourceTree = "<group>"; };
 		527EB217EFDFAD4CF1C91F07 /* bitchat.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bitchat.entitlements; sourceTree = "<group>"; };
 		53D535D9CE0B875F47402290 /* BinaryProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinaryProtocolTests.swift; sourceTree = "<group>"; };
 		61F92EBA29C47C0FCC482F1F /* bitchatShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = bitchatShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		66FCD7BE13991D970E6B83DE /* PatientViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientViewModel.swift; sourceTree = "<group>"; };
 		67A85BFDDE65B4CD8BDF6DDB /* MessageRetentionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageRetentionService.swift; sourceTree = "<group>"; };
 		6DC1563390A15C042D059CF9 /* EncryptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptionService.swift; sourceTree = "<group>"; };
 		763E0DBA9492A654FC0CDCB9 /* AppInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoView.swift; sourceTree = "<group>"; };
@@ -133,19 +142,27 @@
 		AA4D7595A613F7ED3B386132 /* MessageRetryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageRetryService.swift; sourceTree = "<group>"; };
 		C0DB1DE27F0AAB5092663E8E /* bitchatTests_iOS.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = bitchatTests_iOS.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1B378C16594575FCC7F9C75 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		C96601C2E7F142082AF10D03 /* PatientRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientRepository.swift; sourceTree = "<group>"; };
 		CB043CA5EEB9AC8B07D61E97 /* OptimizedBloomFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizedBloomFilter.swift; sourceTree = "<group>"; };
-		D112DB3FB47481D2837C763D /* LaunchScreen.storyboard.ios */ = {isa = PBXFileReference; path = LaunchScreen.storyboard.ios; sourceTree = "<group>"; };
 		D5C3D880FF8AE1673B20E1E3 /* BluetoothMeshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothMeshService.swift; sourceTree = "<group>"; };
 		D69A18D27F9A565FD6041E12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E6B8F7B7D55092C2540A7996 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		E9204D970FCBFEF37D95EBE2 /* PatientSearchHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientSearchHandler.swift; sourceTree = "<group>"; };
 		EA706D8E5097785414646A8E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		ED176FF3B274E35C2D827894 /* BatteryOptimizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryOptimizer.swift; sourceTree = "<group>"; };
-		EECF3757F2DFE4213D290096 /* Info 2.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info 2.plist"; sourceTree = "<group>"; };
 		EF625BB3AD919322C01A46B2 /* BitchatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitchatApp.swift; sourceTree = "<group>"; };
 		FF7AF93D874001FBD94C8306 /* bitchat-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "bitchat-macOS.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		0575DCBD15C7C719ADDCB67E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				477E75501586125DDC6E8FD0 /* Patient.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		18198ED912AAF495D8AF7763 = {
 			isa = PBXGroup;
 			children = (
@@ -163,10 +180,9 @@
 				FF7AF93D874001FBD94C8306 /* bitchat-macOS.entitlements */,
 				527EB217EFDFAD4CF1C91F07 /* bitchat.entitlements */,
 				EF625BB3AD919322C01A46B2 /* BitchatApp.swift */,
-				EECF3757F2DFE4213D290096 /* Info 2.plist */,
 				EA706D8E5097785414646A8E /* Info.plist */,
 				92B75E0496E71956EFA57A23 /* Info.plist.backup */,
-				D112DB3FB47481D2837C763D /* LaunchScreen.storyboard.ios */,
+				0575DCBD15C7C719ADDCB67E /* Models */,
 				ADD53BCDA233C02E53458926 /* Protocols */,
 				D98A3186D7E4C72E35BDF7FE /* Services */,
 				9A78348821A7D3374607D4E3 /* Utils */,
@@ -180,6 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				E6B8F7B7D55092C2540A7996 /* ChatViewModel.swift */,
+				66FCD7BE13991D970E6B83DE /* PatientViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -222,6 +239,7 @@
 				763E0DBA9492A654FC0CDCB9 /* AppInfoView.swift */,
 				A08E03AA0C63E97C91749AEC /* ContentView.swift */,
 				9AC141774F6671FCDC347DC7 /* LinkPreviewView.swift */,
+				40ECA5518D55A4BD8895112E /* PatientSearchView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -258,6 +276,8 @@
 				67A85BFDDE65B4CD8BDF6DDB /* MessageRetentionService.swift */,
 				AA4D7595A613F7ED3B386132 /* MessageRetryService.swift */,
 				3448F84BF86A42A3CC4A9379 /* NotificationService.swift */,
+				C96601C2E7F142082AF10D03 /* PatientRepository.swift */,
+				E9204D970FCBFEF37D95EBE2 /* PatientSearchHandler.swift */,
 				38ADFA370907822F1B71F09C /* PingToServerHandler.swift */,
 			);
 			path = Services;
@@ -417,9 +437,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7DD72D928FF9DD3CA81B46B0 /* Assets.xcassets in Resources */,
-				5BBA49B8BBC34AC05F6D4624 /* Info 2.plist in Resources */,
 				BC28BE9D0792847556BFC457 /* Info.plist.backup in Resources */,
-				EA763998F218C8E0C8F5679D /* LaunchScreen.storyboard.ios in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -428,9 +446,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BCCFEDC1EBE59323C3C470BF /* Assets.xcassets in Resources */,
-				45A7E30927422E3B0088E6EB /* Info 2.plist in Resources */,
 				064E1DB9D0CAD27E810828DD /* Info.plist.backup in Resources */,
-				4DC6562C882AAC5F80DB1246 /* LaunchScreen.storyboard.ios in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -466,6 +482,11 @@
 				C99763A4761567F587D21688 /* MessageRetryService.swift in Sources */,
 				749D8CF8A362B6CD0786782D /* NotificationService.swift in Sources */,
 				0245710AEAA58AD0A1425234 /* OptimizedBloomFilter.swift in Sources */,
+				EAFE7404C9D1A37502886A63 /* Patient.swift in Sources */,
+				255AD15A2D15B1BF94EF1153 /* PatientRepository.swift in Sources */,
+				35736A18F4E2A77A8509CBEA /* PatientSearchHandler.swift in Sources */,
+				2515CA285182617055604E00 /* PatientSearchView.swift in Sources */,
+				06918D68456D9E7487F2FAE7 /* PatientViewModel.swift in Sources */,
 				EA5ACAC19CF1E6C64741C12C /* PingToServerHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -491,6 +512,11 @@
 				CEAE115C9C3EB3C4ED82F128 /* MessageRetryService.swift in Sources */,
 				61C81ED5F679D5E973EE0C07 /* NotificationService.swift in Sources */,
 				1F48A8CEEE9399D1EBD08F0C /* OptimizedBloomFilter.swift in Sources */,
+				3AF596D7A812255CBF07949F /* Patient.swift in Sources */,
+				892664D71EA5DEE6A1B9E0A0 /* PatientRepository.swift in Sources */,
+				AF10BC0C6FDC3BEFC21F89AA /* PatientSearchHandler.swift in Sources */,
+				5AB7F696C6FBECDAE8B68601 /* PatientSearchView.swift in Sources */,
+				1A1436C586182E44D7C811D0 /* PatientViewModel.swift in Sources */,
 				0E4B170BF0E7196E90221FAC /* PingToServerHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
