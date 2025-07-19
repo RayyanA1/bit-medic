@@ -52,6 +52,7 @@ class ChatViewModel: ObservableObject {
     @Published var retentionEnabledChannels: Set<String> = []  // Channels where owner enabled retention for all members
     
     let meshService = BluetoothMeshService()
+    private let pingToServerHandler = PingToServerHandler()
     private let userDefaults = UserDefaults.standard
     private let nicknameKey = "bitchat.nickname"
     private let favoritesKey = "bitchat.favorites"
@@ -82,6 +83,9 @@ class ChatViewModel: ObservableObject {
         // Load saved channels state
         savedChannels = MessageRetentionService.shared.getFavoriteChannels()
         meshService.delegate = self
+        
+        // Set up ping to server handler with reference to this view model
+        pingToServerHandler.chatViewModel = self
         
         // Log startup info
         
@@ -2482,6 +2486,9 @@ extension ChatViewModel: BitchatDelegate {
                 return
             }
         }
+        
+        // Handle PingToServer messages
+        pingToServerHandler.handleIncomingBluetoothMessage(message.content)
         
         if message.isPrivate {
             // Handle private message
