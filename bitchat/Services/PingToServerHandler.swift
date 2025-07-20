@@ -9,6 +9,7 @@ class PingToServerHandler {
     private var activeSearchRequests: Set<String> = []  // Track search requests this device made
     private var currentSearchTerm: String?  // Track the most recent search term
     private var activeAPITask: URLSessionDataTask?  // Track active API request for cancellation
+    private var activeCreatePatientRequests: Set<String> = []  // Track create patient requests this device made
     
     weak var chatViewModel: ChatViewModel?
     
@@ -30,6 +31,13 @@ class PingToServerHandler {
             name: NSNotification.Name("BitMedicSearchRequestMade"),
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCreatePatientRequestMade(_:)),
+            name: NSNotification.Name("BitMedicCreatePatientRequestMade"),
+            object: nil
+        )
     }
     
     @objc private func handleSearchRequestMade(_ notification: Notification) {
@@ -44,6 +52,17 @@ class PingToServerHandler {
             activeSearchRequests.insert(searchTerm)
             
             showFeedbackMessage("🎯 Tracking: Added '\(searchTerm)' to activeSearchRequests")
+        }
+    }
+    
+    @objc private func handleCreatePatientRequestMade(_ notification: Notification) {
+        if let jsonString = notification.object as? String {
+            showFeedbackMessage("📱 UI Create Patient: This device initiated patient creation")
+            
+            // Add this request to tracking
+            activeCreatePatientRequests.insert(jsonString)
+            
+            showFeedbackMessage("🎯 Tracking: Added patient creation request to activeCreatePatientRequests")
         }
     }
     
@@ -73,6 +92,45 @@ class PingToServerHandler {
     // MARK: - Main Message Handler
     func handleIncomingBluetoothMessage(_ message: String) {
         let prefix = "PingToServer:"
+        
+        // Check if this is a create patient response (CreatePatientResult: prefix)
+        if message.hasPrefix("CreatePatientResult: ") {
+            showFeedbackMessage("📥 Mesh Response: Received create patient result message")
+            
+            let responseContent = String(message.dropFirst("CreatePatientResult: ".count))
+            
+            // Check if this response is for a request this device made
+            var isMyRequest = false
+            
+            for requestData in activeCreatePatientRequests {
+                // Simple check if the response mentions success/failure for our request
+                if responseContent.contains("success") || responseContent.contains("error") {
+                    isMyRequest = true
+                    activeCreatePatientRequests.remove(requestData)
+                    showFeedbackMessage("✅ Match Found: This response is for our create patient request")
+                    break
+                }
+            }
+            
+            if isMyRequest {
+                showFeedbackMessage("🎯 Processing: Updating UI with create patient result")
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("BitMedicCreatePatientResponse"),
+                        object: BitchatMessage(
+                            sender: "system",
+                            content: message,
+                            timestamp: Date(),
+                            isRelay: false,
+                            isPrivate: false
+                        )
+                    )
+                }
+            } else {
+                showFeedbackMessage("🚫 Ignoring: This response is not for our create patient request")
+            }
+            // Continue processing - don't return, let message flow through as normal user message
+        }
         
         // Check if this is a search response (Results: prefix) - handle but don't block other processing
         if message.hasPrefix("Results: ") {
@@ -141,6 +199,16 @@ class PingToServerHandler {
             // This is a search request from another device via mesh
             // Don't track it as our own request - we're just acting as a proxy
             handleBitMedicSearch(extractedMessage)
+            return
+        }
+        
+        // Handle BitMedic create patient requests specially
+        if extractedMessage.hasPrefix("/createpatient ") {
+            showFeedbackMessage("🔄 Mesh Request: Received create patient request from another peer")
+            
+            // This is a create patient request from another device via mesh
+            // Don't track it as our own request - we're just acting as a proxy
+            handleBitMedicCreatePatient(extractedMessage)
             return
         }
         
@@ -429,5 +497,88 @@ class PingToServerHandler {
                 )
             )
         }
+    }
+    
+    // MARK: - BitMedic Create Patient Handler
+    private func handleBitMedicCreatePatient(_ createPatientRequest: String) {
+        // Extract JSON data from "/createpatient {json}" format
+        let requestPrefix = "/createpatient "
+        guard createPatientRequest.hasPrefix(requestPrefix) else { return }
+        
+        let jsonString = String(createPatientRequest.dropFirst(requestPrefix.count))
+        
+        print("BitMedic create patient request: \(jsonString)")
+        
+        // Check internet connectivity
+        guard isConnectedToInternet else {
+            showCreatePatientResponse("CreatePatientResult: error - No internet connection available")
+            return
+        }
+        
+        // Call create patient API
+        createPatientViaAPI(jsonString: jsonString)
+    }
+    
+    private func createPatientViaAPI(jsonString: String) {
+        guard let jsonData = jsonString.data(using: .utf8),
+              let url = URL(string: "https://addpatient-uob3euoulq-uc.a.run.app/") else {
+            showCreatePatientResponse("CreatePatientResult: error - Invalid request data")
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = jsonData
+        
+        print("Calling create patient API with data: \(jsonString)")
+        showFeedbackMessage("API Call: POST \(url)")
+        
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                self?.handleCreatePatientResponse(data: data, response: response, error: error)
+            }
+        }
+        
+        task.resume()
+    }
+    
+    private func handleCreatePatientResponse(data: Data?, response: URLResponse?, error: Error?) {
+        if let error = error {
+            print("Create patient API error: \(error.localizedDescription)")
+            showFeedbackMessage("API Error: \(error.localizedDescription)")
+            showCreatePatientResponse("CreatePatientResult: error - \(error.localizedDescription)")
+            return
+        }
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            showFeedbackMessage("API Response: Invalid response type")
+            showCreatePatientResponse("CreatePatientResult: error - Invalid server response")
+            return
+        }
+        
+        showFeedbackMessage("API Response: HTTP \(httpResponse.statusCode)")
+        
+        if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+            showFeedbackMessage("API Success: Patient created successfully")
+            showCreatePatientResponse("CreatePatientResult: success - Patient created successfully")
+        } else {
+            let errorMsg = "Server error (\(httpResponse.statusCode))"
+            if let data = data, let responseBody = String(data: data, encoding: .utf8) {
+                showFeedbackMessage("API Error: \(responseBody)")
+                showCreatePatientResponse("CreatePatientResult: error - \(errorMsg): \(responseBody)")
+            } else {
+                showCreatePatientResponse("CreatePatientResult: error - \(errorMsg)")
+            }
+        }
+    }
+    
+    private func showCreatePatientResponse(_ message: String) {
+        showFeedbackMessage("📤 Sending Create Patient Response: Broadcasting '\(message)' to mesh network")
+        
+        // Send response back through the mesh network
+        sendToMeshNetwork(message)
+        
+        showFeedbackMessage("📡 Create Patient Response Sent: Message should now be visible to requesting peer")
     }
 }

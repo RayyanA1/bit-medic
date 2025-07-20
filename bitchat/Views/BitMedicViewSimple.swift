@@ -175,40 +175,75 @@ struct BitMedicViewSimple: View {
                 ScrollView {
                     VStack(spacing: 15) {
                         VStack(alignment: .leading) {
-                            Text("Patient ID (6 digits) *")
-                                .foregroundColor(textColor)
-                                .font(.caption)
+                            HStack {
+                                Text("Patient ID (6 digits)")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
                             TextField("123456", text: $newPatientId)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
                         }
                         
                         VStack(alignment: .leading) {
-                            Text("Patient Name *")
-                                .foregroundColor(textColor)
-                                .font(.caption)
+                            HStack {
+                                Text("Patient Name")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
                             TextField("Enter patient name", text: $newPatientName)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
                         }
                         
                         VStack(alignment: .leading) {
-                            Text("Date of Birth")
-                                .foregroundColor(textColor)
-                                .font(.caption)
+                            HStack {
+                                Text("Date of Birth")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
                             TextField("YYYY-MM-DD", text: $newPatientDOB)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
                         }
                         
                         VStack(alignment: .leading) {
                             Text("Gender")
-                                .foregroundColor(textColor)
+                                .foregroundColor(secondaryTextColor)
                                 .font(.caption)
-                            TextField("Male/Female/Other", text: $newPatientGender)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            Picker("", selection: $newPatientGender) {
+                                Text("Select Gender").tag("")
+                                Text("Male").tag("Male")
+                                Text("Female").tag("Female")
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         
                         VStack(alignment: .leading) {
                             Text("Blood Type")
-                                .foregroundColor(textColor)
+                                .foregroundColor(secondaryTextColor)
                                 .font(.caption)
                             TextField("A+, B-, O+, etc.", text: $newPatientBloodType)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -216,7 +251,7 @@ struct BitMedicViewSimple: View {
                         
                         VStack(alignment: .leading) {
                             Text("Address")
-                                .foregroundColor(textColor)
+                                .foregroundColor(secondaryTextColor)
                                 .font(.caption)
                             TextField("Enter address", text: $newPatientAddress)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -224,7 +259,7 @@ struct BitMedicViewSimple: View {
                         
                         VStack(alignment: .leading) {
                             Text("Phone Number")
-                                .foregroundColor(textColor)
+                                .foregroundColor(secondaryTextColor)
                                 .font(.caption)
                             TextField("Enter phone number", text: $newPatientPhone)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -232,26 +267,47 @@ struct BitMedicViewSimple: View {
                         
                         VStack(alignment: .leading) {
                             Text("Allergies")
-                                .foregroundColor(textColor)
+                                .foregroundColor(secondaryTextColor)
                                 .font(.caption)
-                            TextField("Enter allergies", text: $newPatientAllergies)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            TextEditor(text: $newPatientAllergies)
+                                .frame(minHeight: 60, maxHeight: 120)
+                                .padding(4)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
                         }
                         
                         VStack(alignment: .leading) {
                             Text("Medical Conditions")
-                                .foregroundColor(textColor)
+                                .foregroundColor(secondaryTextColor)
                                 .font(.caption)
-                            TextField("Enter medical conditions", text: $newPatientConditions)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            TextEditor(text: $newPatientConditions)
+                                .frame(minHeight: 60, maxHeight: 120)
+                                .padding(4)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
                         }
                         
                         VStack(alignment: .leading) {
                             Text("Notes")
-                                .foregroundColor(textColor)
+                                .foregroundColor(secondaryTextColor)
                                 .font(.caption)
-                            TextField("Enter notes", text: $newPatientNotes)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            TextEditor(text: $newPatientNotes)
+                                .frame(minHeight: 80, maxHeight: 150)
+                                .padding(4)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
                         }
                     }
                     .padding(.horizontal)
@@ -268,7 +324,7 @@ struct BitMedicViewSimple: View {
                         createNewPatient()
                     }
                     .foregroundColor(.green)
-                    .disabled(newPatientId.count != 6 || newPatientName.isEmpty || isCreatingPatient || !isValidDOB())
+                    .disabled(newPatientId.count != 6 || newPatientName.isEmpty || newPatientDOB.isEmpty || isCreatingPatient || !isValidDOB())
                 }
                 
                 if isCreatingPatient {
@@ -654,6 +710,16 @@ struct BitMedicViewSimple: View {
                 self.handleMeshSearchResponse(message.content)
             }
         }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("BitMedicCreatePatientResponse"),
+            object: nil,
+            queue: .main
+        ) { notification in
+            if let message = notification.object as? BitchatMessage {
+                self.handleMeshCreatePatientResponse(message.content)
+            }
+        }
     }
     
     private func handleMeshSearchResponse(_ content: String) {
@@ -706,6 +772,25 @@ struct BitMedicViewSimple: View {
         isSearching = false
     }
     
+    private func handleMeshCreatePatientResponse(_ content: String) {
+        // Check if this is a patient creation response
+        if content.hasPrefix("CreatePatientResult: ") {
+            let responseContent = String(content.dropFirst("CreatePatientResult: ".count))
+            
+            isCreatingPatient = false
+            
+            if responseContent.contains("success") || responseContent.contains("created") {
+                print("Patient created successfully via mesh")
+                resetForm()
+                showingNewPatientForm = false
+            } else {
+                let errorMsg = "Failed to create patient via mesh: \(responseContent)"
+                print(errorMsg)
+                creationErrorMessage = errorMsg
+            }
+        }
+    }
+    
     // MARK: - New Patient Functions
     private func resetForm() {
         newPatientId = ""
@@ -723,9 +808,9 @@ struct BitMedicViewSimple: View {
     }
     
     private func isValidDOB() -> Bool {
-        // DOB is optional, so empty is valid
+        // DOB is now required, so empty is invalid
         if newPatientDOB.isEmpty {
-            return true
+            return false
         }
         
         // Check format YYYY-MM-DD
@@ -737,20 +822,18 @@ struct BitMedicViewSimple: View {
     }
     
     private func createNewPatient() {
-        guard newPatientId.count == 6, !newPatientName.isEmpty else { return }
+        guard newPatientId.count == 6, !newPatientName.isEmpty, !newPatientDOB.isEmpty, isValidDOB() else { return }
         
         isCreatingPatient = true
         creationErrorMessage = ""
         
         var patientData: [String: Any] = [
             "id": Int(newPatientId) ?? 0,
-            "name": newPatientName
+            "name": newPatientName,
+            "DOB": newPatientDOB
         ]
         
         // Add optional fields if provided
-        if !newPatientDOB.isEmpty {
-            patientData["DOB"] = newPatientDOB
-        }
         if !newPatientGender.isEmpty {
             patientData["gender"] = newPatientGender
         }
@@ -774,9 +857,33 @@ struct BitMedicViewSimple: View {
         }
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: patientData),
-              let url = URL(string: "https://addpatient-uob3euoulq-uc.a.run.app/") else {
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
             isCreatingPatient = false
             creationErrorMessage = "Failed to prepare request data"
+            return
+        }
+        
+        print("Creating patient with data: \(jsonString)")
+        
+        // Test connectivity to determine how to send the request
+        testInternetConnectivity()
+        
+        // Add a small delay to allow connectivity test to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if self.isConnectedToInternet {
+                // Direct API call when online
+                self.createPatientDirectly(jsonData: jsonData)
+            } else {
+                // Use mesh network when offline
+                self.createPatientViaMesh(jsonString: jsonString)
+            }
+        }
+    }
+    
+    private func createPatientDirectly(jsonData: Data) {
+        guard let url = URL(string: "https://addpatient-uob3euoulq-uc.a.run.app/") else {
+            isCreatingPatient = false
+            creationErrorMessage = "Invalid server URL"
             return
         }
         
@@ -784,8 +891,6 @@ struct BitMedicViewSimple: View {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
-        
-        print("Creating patient with data: \(String(data: jsonData, encoding: .utf8) ?? "Unable to encode")")
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
@@ -820,5 +925,26 @@ struct BitMedicViewSimple: View {
                 }
             }
         }.resume()
+    }
+    
+    private func createPatientViaMesh(jsonString: String) {
+        // Send patient creation request via mesh network
+        let createMessage = "PingToServer: /createpatient \(jsonString)"
+        
+        // Notify PingToServerHandler that we're making this request so it can track it
+        NotificationCenter.default.post(
+            name: NSNotification.Name("BitMedicCreatePatientRequestMade"),
+            object: jsonString
+        )
+        
+        viewModel.sendMessage(createMessage)
+        
+        // Set a timeout for mesh patient creation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+            if self.isCreatingPatient {
+                self.isCreatingPatient = false
+                self.creationErrorMessage = "Patient creation timed out via mesh network"
+            }
+        }
     }
 }
