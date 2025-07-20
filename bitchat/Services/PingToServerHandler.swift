@@ -32,6 +32,23 @@ class PingToServerHandler {
         
         // Check if message starts with the required prefix
         guard message.hasPrefix(prefix) else {
+            // Check if this is a search response (Results: prefix)
+            if message.hasPrefix("Results: ") {
+                // This is a search response received via mesh network
+                // Notify the BitMedic UI directly
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("BitMedicSearchResponse"),
+                        object: BitchatMessage(
+                            sender: "system",
+                            content: message,
+                            timestamp: Date(),
+                            isRelay: false,
+                            isPrivate: false
+                        )
+                    )
+                }
+            }
             return // Not a ping-to-server message, ignore
         }
         
@@ -175,16 +192,20 @@ class PingToServerHandler {
             return
         }
         
-        // URL encode the search term
+        // URL encode the search term for query parameter
         guard let encodedSearchTerm = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://partialsearchpatientname-uob3euoulq-uc.a.run.app/?name=\(encodedSearchTerm)") else {
+              let url = URL(string: "https://partialsearchusingpatientname-uob3euoulq-uc.a.run.app/?name=\(encodedSearchTerm)") else {
             showSearchResponse("Results: Invalid search term")
             return
         }
         
-        print("Calling patient search API: \(url)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
         
-        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        print("Calling patient search API with GET: \(url)")
+        showFeedbackMessage("API Call: GET \(url)")
+        
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 self?.handlePatientSearchResponse(data: data, response: response, error: error, searchTerm: searchTerm)
             }
@@ -196,14 +217,18 @@ class PingToServerHandler {
     private func handlePatientSearchResponse(data: Data?, response: URLResponse?, error: Error?, searchTerm: String) {
         if let error = error {
             print("Patient search API error: \(error.localizedDescription)")
+            showFeedbackMessage("API Error: \(error.localizedDescription)")
             showSearchResponse("Results: Search failed - \(error.localizedDescription)")
             return
         }
         
         guard let httpResponse = response as? HTTPURLResponse else {
+            showFeedbackMessage("API Response: Invalid response type")
             showSearchResponse("Results: Invalid server response")
             return
         }
+        
+        showFeedbackMessage("API Response: HTTP \(httpResponse.statusCode)")
         
         guard httpResponse.statusCode == 200 else {
             showSearchResponse("Results: Server error (\(httpResponse.statusCode))")
@@ -218,15 +243,18 @@ class PingToServerHandler {
         do {
             // Try to parse as JSON array first
             if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                showFeedbackMessage("API Success: Found \(jsonArray.count) patients")
                 handlePatientJSONResponse(jsonArray, searchTerm: searchTerm)
             } else {
                 // Fall back to plain text response
                 let responseText = String(data: data, encoding: .utf8) ?? "Unable to decode response"
+                showFeedbackMessage("API Response: Non-JSON data received")
                 showSearchResponse("Results: \(responseText)")
             }
         } catch {
             // If JSON parsing fails, treat as plain text
             let responseText = String(data: data, encoding: .utf8) ?? "Unable to decode response"
+            showFeedbackMessage("API Response: JSON parse failed - \(error.localizedDescription)")
             showSearchResponse("Results: \(responseText)")
         }
     }

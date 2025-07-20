@@ -281,12 +281,15 @@ struct BitMedicViewSimple: View {
     
     private func searchPatientsDirectly(_ searchTerm: String) {
         guard let encodedSearchTerm = searchTerm.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://partialsearchpatientname-uob3euoulq-uc.a.run.app/?name=\(encodedSearchTerm)") else {
+              let url = URL(string: "https://partialsearchusingpatientname-uob3euoulq-uc.a.run.app/?name=\(encodedSearchTerm)") else {
             isSearching = false
             return
         }
         
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isSearching = false
                 self.handleAPIResponse(data: data, response: response, error: error)
@@ -367,12 +370,7 @@ struct BitMedicViewSimple: View {
         }
         
         // Fall back to main messages if no channel messages
-        return viewModel.messages.filter { message in
-            // Show messages that are system messages or contain our search terms
-            message.sender == "system" || 
-            message.content.contains("PingToServer:") ||
-            message.content.contains("Results:")
-        }
+        return viewModel.messages
     }
     
     private func formatTime(_ date: Date) -> String {
