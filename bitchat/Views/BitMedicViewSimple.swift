@@ -36,6 +36,9 @@ struct BitMedicViewSimple: View {
     // New Patient Form States
     @State private var showingNewPatientForm = false
     @State private var isCreatingPatient = false
+    
+    // Patient View States
+    @State private var showingPatientView = false
     @State private var newPatientId = ""
     @State private var newPatientName = ""
     @State private var newPatientDOB = ""
@@ -166,6 +169,9 @@ struct BitMedicViewSimple: View {
         .onDisappear {
             networkMonitor.cancel()
             connectivityTimer?.invalidate()
+        }
+        .sheet(isPresented: $showingPatientView) {
+            patientViewSheet
         }
         .sheet(isPresented: $showingNewPatientForm) {
             VStack(spacing: 20) {
@@ -446,6 +452,164 @@ struct BitMedicViewSimple: View {
         }
     }
     
+    private var patientViewSheet: some View {
+        VStack(spacing: 20) {
+            Text("Patient Details")
+                .font(.title)
+                .foregroundColor(textColor)
+            
+            if let patient = selectedPatient {
+                ScrollView {
+                    VStack(spacing: 15) {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Patient ID")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            Text("\(patient.id)")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Patient Name")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            Text(patient.name)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Date of Birth")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            Text(patient.DOB ?? "Not provided")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Address")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            Text(patient.address ?? "Not provided")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Phone Number")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            Text(patient.phone_number ?? "Not provided")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Previous Visits")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            Text("\(patient.number_of_previous_visits ?? 0)")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Previous Admissions")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            Text("\(patient.number_of_previous_admissions ?? 0)")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Last Admission Date")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            Text(patient.date_of_last_admission ?? "Never admitted")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Patient Notes")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            ScrollView {
+                                Text(patient.patient_notes ?? "No notes available")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .frame(minHeight: 80, maxHeight: 150)
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Last Record Update")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            Text(patient.last_record_update ?? "Unknown")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                
+                Button("Close") {
+                    showingPatientView = false
+                }
+                .foregroundColor(.blue)
+                .font(.body)
+                .padding()
+            } else {
+                Text("No patient selected")
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(30)
+        .background(backgroundColor)
+    }
+    
     private var patientSuggestionsList: some View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(spacing: 0) {
@@ -511,7 +675,7 @@ struct BitMedicViewSimple: View {
         selectedPatient = patient
         searchText = patient.name
         showingSuggestions = false
-        performSearch()
+        showingPatientView = true
     }
     
     private func searchPatients(_ searchTerm: String) {
