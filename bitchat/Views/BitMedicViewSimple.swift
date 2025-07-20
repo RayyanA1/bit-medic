@@ -33,6 +33,22 @@ struct BitMedicViewSimple: View {
     @State private var activeAPITask: URLSessionDataTask?
     @State private var currentSearchTerm: String?
     
+    // New Patient Form States
+    @State private var showingNewPatientForm = false
+    @State private var isCreatingPatient = false
+    @State private var newPatientId = ""
+    @State private var newPatientName = ""
+    @State private var newPatientDOB = ""
+    @State private var newPatientGender = ""
+    @State private var newPatientBloodType = ""
+    @State private var newPatientAddress = ""
+    @State private var newPatientPhone = ""
+    @State private var newPatientAllergies = ""
+    @State private var newPatientConditions = ""
+    @State private var newPatientNotes = ""
+    @State private var showingCreationAlert = false
+    @State private var creationAlertMessage = ""
+    
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "NetworkMonitor")
     
@@ -56,6 +72,12 @@ struct BitMedicViewSimple: View {
                     .font(.largeTitle)
                 
                 Spacer()
+                
+                Button("Add Patient") {
+                    showingNewPatientForm = true
+                }
+                .foregroundColor(.green)
+                .font(.caption)
                 
                 Button(action: {
                     debugMode.toggle()
@@ -110,6 +132,52 @@ struct BitMedicViewSimple: View {
         .onDisappear {
             networkMonitor.cancel()
             connectivityTimer?.invalidate()
+        }
+        .sheet(isPresented: $showingNewPatientForm) {
+            VStack(spacing: 20) {
+                Text("Add New Patient")
+                    .font(.title)
+                    .foregroundColor(textColor)
+                
+                VStack(spacing: 15) {
+                    VStack(alignment: .leading) {
+                        Text("Patient ID (6 digits)")
+                            .foregroundColor(textColor)
+                            .font(.caption)
+                        TextField("123456", text: $newPatientId)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("Patient Name")
+                            .foregroundColor(textColor)
+                            .font(.caption)
+                        TextField("Enter patient name", text: $newPatientName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                }
+                
+                HStack(spacing: 20) {
+                    Button("Cancel") {
+                        resetForm()
+                        showingNewPatientForm = false
+                    }
+                    .foregroundColor(.red)
+                    
+                    Button("Create Patient") {
+                        createNewPatient()
+                    }
+                    .foregroundColor(.green)
+                    .disabled(newPatientId.count != 6 || newPatientName.isEmpty || isCreatingPatient)
+                }
+                
+                if isCreatingPatient {
+                    ProgressView("Creating patient...")
+                        .foregroundColor(textColor)
+                }
+            }
+            .padding(30)
+            .background(backgroundColor)
         }
     }
     
@@ -537,5 +605,51 @@ struct BitMedicViewSimple: View {
         
         // Stop searching indicator after processing
         isSearching = false
+    }
+    
+    // MARK: - New Patient Functions
+    private func resetForm() {
+        newPatientId = ""
+        newPatientName = ""
+        isCreatingPatient = false
+    }
+    
+    private func createNewPatient() {
+        guard newPatientId.count == 6, !newPatientName.isEmpty else { return }
+        
+        isCreatingPatient = true
+        
+        let patientData: [String: Any] = [
+            "id": Int(newPatientId) ?? 0,
+            "name": newPatientName
+        ]
+        
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: patientData),
+              let url = URL(string: "https://addpatient-uob3euoulq-uc.a.run.app/") else {
+            isCreatingPatient = false
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = jsonData
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isCreatingPatient = false
+                
+                if let error = error {
+                    print("Error creating patient: \(error)")
+                } else if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+                        self.resetForm()
+                        self.showingNewPatientForm = false
+                    } else {
+                        print("Server error: \(httpResponse.statusCode)")
+                    }
+                }
+            }
+        }.resume()
     }
 }
