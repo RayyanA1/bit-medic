@@ -34,12 +34,16 @@ class PingToServerHandler {
     
     @objc private func handleSearchRequestMade(_ notification: Notification) {
         if let searchTerm = notification.object as? String {
+            showFeedbackMessage("📱 UI Search: This device initiated search for '\(searchTerm)'")
+            
             // Cancel any previous search requests
             cancelPreviousSearchRequests()
             
             // Set this as the current search term
             currentSearchTerm = searchTerm
             activeSearchRequests.insert(searchTerm)
+            
+            showFeedbackMessage("🎯 Tracking: Added '\(searchTerm)' to activeSearchRequests")
         }
     }
     
@@ -74,8 +78,12 @@ class PingToServerHandler {
         guard message.hasPrefix(prefix) else {
             // Check if this is a search response (Results: prefix)
             if message.hasPrefix("Results: ") {
+                showFeedbackMessage("📥 Mesh Response: Received results message")
+                
                 // Extract the original search term from the response to check if we made this request
                 let responseContent = String(message.dropFirst("Results: ".count))
+                
+                showFeedbackMessage("🔍 Current Tracking: currentSearchTerm='\(currentSearchTerm ?? "nil")', activeSearchRequests=\(activeSearchRequests)")
                 
                 // Try to determine if this response is for a search this device initiated
                 var isMyRequest = false
@@ -87,11 +95,17 @@ class PingToServerHandler {
                         isMyRequest = true
                         activeSearchRequests.remove(currentTerm)
                         currentSearchTerm = nil  // Clear current search term after processing
+                        showFeedbackMessage("✅ Match Found: This response is for our search term '\(currentTerm)'")
+                    } else {
+                        showFeedbackMessage("❌ No Match: Response doesn't contain our search term '\(currentTerm)'")
                     }
+                } else {
+                    showFeedbackMessage("❌ No Current Search: currentSearchTerm is nil")
                 }
                 
                 // Only process the response if this device made the original request
                 if isMyRequest {
+                    showFeedbackMessage("🎯 Processing: Updating typeahead with results")
                     // This is a search response received via mesh network for a request we made
                     // Notify the BitMedic UI directly
                     DispatchQueue.main.async {
@@ -106,6 +120,8 @@ class PingToServerHandler {
                             )
                         )
                     }
+                } else {
+                    showFeedbackMessage("🚫 Ignoring: This response is not for our search")
                 }
             }
             return // Not a ping-to-server message, ignore
@@ -118,6 +134,8 @@ class PingToServerHandler {
         
         // Handle BitMedic search queries specially
         if extractedMessage.hasPrefix("/search?q=") {
+            showFeedbackMessage("🔄 Mesh Request: Received search request from another peer: '\(extractedMessage)'")
+            
             // This is a search request from another device via mesh
             // Don't track it as our own request - we're just acting as a proxy
             handleBitMedicSearch(extractedMessage)
@@ -351,8 +369,12 @@ class PingToServerHandler {
     }
     
     private func showSearchResponse(_ message: String) {
+        showFeedbackMessage("📤 Sending Response: Broadcasting '\(message)' to mesh network")
+        
         // Send response back through the mesh network
         showFeedbackMessage(message)
+        
+        showFeedbackMessage("📡 Response Sent: Message should now be visible to requesting peer")
         
         // Also notify the BitMedic UI
         DispatchQueue.main.async {

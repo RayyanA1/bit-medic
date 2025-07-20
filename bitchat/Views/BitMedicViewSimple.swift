@@ -49,28 +49,36 @@ struct BitMedicViewSimple: View {
     }
     
     var body: some View {
-        VStack {
-            // Header with debug toggle
+        VStack(spacing: 0) {
+            // Fixed header with debug toggle - always visible
             HStack {
                 Text("BitMedic")
                     .font(.largeTitle)
+                    .foregroundColor(textColor)
                 
                 Spacer()
                 
                 Button(action: {
                     debugMode.toggle()
                 }) {
-                    HStack {
+                    HStack(spacing: 4) {
                         Image(systemName: debugMode ? "eye.slash" : "eye")
                         Text("Debug")
                     }
                     .font(.caption)
                     .foregroundColor(.blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(6)
                 }
             }
             .padding()
+            .background(backgroundColor)
             
+            // Search section with fixed height
             VStack(spacing: 0) {
+                // Search bar - fixed position
                 HStack {
                     TextField("Search for patients...", text: $searchText)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -81,24 +89,48 @@ struct BitMedicViewSimple: View {
                     if isSearching {
                         ProgressView()
                             .scaleEffect(0.8)
+                            .frame(width: 60) // Fixed width for consistent layout
                     } else {
                         Button("Search") {
                             performSearch()
                         }
                         .disabled(searchText.isEmpty)
+                        .frame(width: 60) // Fixed width for consistent layout
                     }
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 8)
                 
-                if showingSuggestions && !patients.isEmpty {
-                    patientSuggestionsList
+                // Suggestions overlay - positioned absolutely to not affect layout
+                ZStack(alignment: .top) {
+                    // Invisible spacer to maintain layout height
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(height: debugMode ? 60 : 300) // Reserve space based on debug mode
+                    
+                    // Suggestions list - overlaid on top
+                    if showingSuggestions && !patients.isEmpty {
+                        patientSuggestionsList
+                            .zIndex(1) // Ensure it appears above other content
+                    }
                 }
             }
             
+            // Debug section - fixed at bottom
             if debugMode {
                 debugChatView
-            } else {
-                Spacer()
+                    .transition(.move(edge: .bottom))
+            }
+            
+            Spacer(minLength: 0) // Flexible spacer at bottom
+        }
+        .background(backgroundColor)
+        .animation(.easeInOut(duration: 0.3), value: debugMode)
+        .animation(.easeInOut(duration: 0.2), value: showingSuggestions)
+        .onTapGesture {
+            // Hide suggestions when tapping outside
+            if showingSuggestions {
+                showingSuggestions = false
             }
         }
         .onAppear {
@@ -216,38 +248,47 @@ struct BitMedicViewSimple: View {
     }
     
     private var patientSuggestionsList: some View {
-        VStack(spacing: 0) {
-            ForEach(patients.prefix(5)) { patient in
-                Button(action: {
-                    selectPatient(patient)
-                }) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(patient.name)
-                                .font(.body)
-                                .foregroundColor(textColor)
-                            Text("ID: \(patient.id)")
-                                .font(.caption)
-                                .foregroundColor(secondaryTextColor)
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 0) {
+                ForEach(patients.prefix(5)) { patient in
+                    Button(action: {
+                        selectPatient(patient)
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(patient.name)
+                                    .font(.body)
+                                    .foregroundColor(textColor)
+                                    .lineLimit(1)
+                                Text("ID: \(patient.id)")
+                                    .font(.caption)
+                                    .foregroundColor(secondaryTextColor)
+                            }
+                            Spacer()
                         }
-                        Spacer()
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .buttonStyle(PlainButtonStyle())
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(0.05))
+                    )
+                    .overlay(
+                        Rectangle()
+                            .frame(height: 0.5)
+                            .foregroundColor(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.2)),
+                        alignment: .bottom
+                    )
                 }
-                .buttonStyle(PlainButtonStyle())
-                .background(colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(0.05))
-                .overlay(
-                    Rectangle()
-                        .frame(height: 1)
-                        .foregroundColor(colorScheme == .dark ? Color.gray.opacity(0.4) : Color.gray.opacity(0.2)),
-                    alignment: .bottom
-                )
             }
         }
-        .background(backgroundColor)
-        .cornerRadius(8)
-        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .frame(maxHeight: 250) // Limit maximum height
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(backgroundColor)
+                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+        )
         .padding(.horizontal)
         .padding(.top, 4)
     }
