@@ -360,6 +360,15 @@ struct BitMedicViewSimple: View {
                         .font(.headline)
                         .foregroundColor(.orange)
                     Spacer()
+                    Button("Clear") {
+                        clearDebugMessages()
+                    }
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(6)
                 }
                 
                 // Connection status
@@ -735,6 +744,12 @@ struct BitMedicViewSimple: View {
                 self.handleMeshCreatePatientResponse(message.content)
             }
         }
+    }
+    
+    private func clearDebugMessages() {
+        let secureChannel = "#bitmedic_secure"
+        viewModel.channelMessages[secureChannel] = []
+        viewModel.messages = []
     }
     
     private func handleMeshSearchResponse(_ content: String) {
