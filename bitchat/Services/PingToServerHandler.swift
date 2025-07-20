@@ -42,7 +42,7 @@ class PingToServerHandler {
     
     @objc private func handleSearchRequestMade(_ notification: Notification) {
         if let searchTerm = notification.object as? String {
-            showFeedbackMessage("📱 UI Search: This device initiated search for '\(searchTerm)'")
+            showFeedbackMessage("📱 OFFLINE DEVICE: Searching for '\(searchTerm)' via mesh network")
             
             // Cancel any previous search requests
             cancelPreviousSearchRequests()
@@ -50,8 +50,6 @@ class PingToServerHandler {
             // Set this as the current search term
             currentSearchTerm = searchTerm
             activeSearchRequests.insert(searchTerm)
-            
-            showFeedbackMessage("🎯 Tracking: Added '\(searchTerm)' to activeSearchRequests")
         }
     }
     
@@ -134,13 +132,8 @@ class PingToServerHandler {
         
         // Check if this is a search response (Results: prefix) - handle but don't block other processing
         if message.hasPrefix("Results: ") {
-            showFeedbackMessage("📥 Mesh Response: Received results message")
-            
             // Extract the original search term from the response to check if we made this request
             let responseContent = String(message.dropFirst("Results: ".count))
-            
-            showFeedbackMessage("🔍 Current Tracking: currentSearchTerm='\(currentSearchTerm ?? "nil")', activeSearchRequests=\(activeSearchRequests)")
-            showFeedbackMessage("🔍 Response Content Preview: \(String(responseContent.prefix(100)))...")
             
             // Check if this response is for a request this device made
             var isMyRequest = false
@@ -150,14 +143,11 @@ class PingToServerHandler {
                 isMyRequest = true
                 activeSearchRequests.remove(currentTerm)
                 currentSearchTerm = nil  // Clear current search term after processing
-                showFeedbackMessage("✅ Match Found: This response is for our search term '\(currentTerm)'")
-            } else {
-                showFeedbackMessage("❌ No Current Search: currentSearchTerm is nil")
+                showFeedbackMessage("📥 OFFLINE DEVICE: Received search results for '\(currentTerm)'")
             }
             
             // Only process the response if this device made the original request
             if isMyRequest {
-                showFeedbackMessage("🎯 Processing: Updating typeahead with results")
                 // This is a search response received via mesh network for a request we made
                 // Notify the BitMedic UI directly
                 DispatchQueue.main.async {
@@ -190,7 +180,8 @@ class PingToServerHandler {
         
         // Handle BitMedic search queries specially
         if extractedMessage.hasPrefix("/search?q=") {
-            showFeedbackMessage("🔄 Mesh Request: Received search request from another peer: '\(extractedMessage)'")
+            let searchTerm = String(extractedMessage.dropFirst("/search?q=".count))
+            showFeedbackMessage("🌐 ONLINE DEVICE: Received search request for '\(searchTerm)' - forwarding to server")
             
             // This is a search request from another device via mesh
             // Don't track it as our own request - we're just acting as a proxy
@@ -293,30 +284,22 @@ class PingToServerHandler {
         DispatchQueue.main.async {
             // Save the current channel context
             let originalChannel = chatViewModel.currentChannel
-            self.showFeedbackMessage("🔄 Channel Switch: From '\(originalChannel ?? "none")' to '#bitmedic_secure'")
-            
-            // Check if we're joined to the secure channel
             let secureChannel = "#bitmedic_secure"
+            
+            // Quick status check
             if !chatViewModel.joinedChannels.contains(secureChannel) {
                 self.showFeedbackMessage("⚠️ Warning: Not joined to \(secureChannel)")
             }
             
-            // Check mesh connectivity
-            self.showFeedbackMessage("🌐 Mesh Status: Connected=\(chatViewModel.isConnected), Peers=\(chatViewModel.connectedPeers.count)")
-            self.showFeedbackMessage("🌐 Connected Peers: \(chatViewModel.connectedPeers)")
-            
             // Switch to the BitMedic secure channel to send the response
             chatViewModel.switchToChannel(secureChannel)
-            self.showFeedbackMessage("🎯 Sending: '\(message)' via mesh network")
-
+            
             // Send message to mesh network
             chatViewModel.sendMessage(message)
-            self.showFeedbackMessage("✅ Sent: Message transmission completed")
             
             // Restore the original channel context
             if let original = originalChannel {
                 chatViewModel.switchToChannel(original)
-                self.showFeedbackMessage("🔄 Channel Restored: Back to '\(original)'")
             }
         }
     }
@@ -389,8 +372,7 @@ class PingToServerHandler {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        print("Calling patient search API with GET: \(url)")
-        showFeedbackMessage("API Call: GET \(url)")
+        showFeedbackMessage("🌐 ONLINE DEVICE: Calling server API for search")
         
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
@@ -431,18 +413,16 @@ class PingToServerHandler {
         do {
             // Try to parse as JSON array first
             if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                showFeedbackMessage("API Success: Found \(jsonArray.count) patients")
+                showFeedbackMessage("✅ ONLINE DEVICE: Server returned \(jsonArray.count) results - sending back to mesh")
                 handlePatientJSONResponse(jsonArray, searchTerm: searchTerm)
             } else {
                 // Fall back to plain text response
                 let responseText = String(data: data, encoding: .utf8) ?? "Unable to decode response"
-                showFeedbackMessage("API Response: Non-JSON data received")
                 showSearchResponse("Results: \(responseText)")
             }
         } catch {
             // If JSON parsing fails, treat as plain text
             let responseText = String(data: data, encoding: .utf8) ?? "Unable to decode response"
-            showFeedbackMessage("API Response: JSON parse failed - \(error.localizedDescription)")
             showSearchResponse("Results: \(responseText)")
         }
     }
@@ -477,14 +457,10 @@ class PingToServerHandler {
     }
     
     private func showSearchResponse(_ message: String) {
-        showFeedbackMessage("📤 Sending Response: Broadcasting '\(message)' to mesh network")
+        showFeedbackMessage("📤 ONLINE DEVICE: Broadcasting search results to mesh network")
         
         // Send response back through the mesh network as a user message
-        showFeedbackMessage("🚀 About to call sendToMeshNetwork")
         sendToMeshNetwork(message)
-        showFeedbackMessage("🚀 Finished calling sendToMeshNetwork")
-        
-        showFeedbackMessage("📡 Response Sent: Message should now be visible to requesting peer")
         
         // Also notify the BitMedic UI (local only)
         DispatchQueue.main.async {
