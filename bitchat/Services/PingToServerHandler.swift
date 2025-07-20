@@ -204,9 +204,16 @@ class PingToServerHandler {
                 content: message,
                 timestamp: Date(),
                 isRelay: false,
-                isPrivate: false
+                isPrivate: false,
+                channel: "#bitmedic_secure"
             )
-            chatViewModel.messages.append(systemMessage)
+            
+            // Add to the bitmedic_secure channel messages so they show in debug view
+            let secureChannel = "#bitmedic_secure"
+            if chatViewModel.channelMessages[secureChannel] == nil {
+                chatViewModel.channelMessages[secureChannel] = []
+            }
+            chatViewModel.channelMessages[secureChannel]?.append(systemMessage)
         }
     }
     
@@ -215,8 +222,19 @@ class PingToServerHandler {
         guard let chatViewModel = chatViewModel else { return }
         
         DispatchQueue.main.async {
+            // Save the current channel context
+            let originalChannel = chatViewModel.currentChannel
+            
+            // Switch to the BitMedic secure channel to send the response
+            chatViewModel.switchToChannel("#bitmedic_secure")
+            
             // Send message to mesh network
             chatViewModel.sendMessage(message)
+            
+            // Restore the original channel context
+            if let original = originalChannel {
+                chatViewModel.switchToChannel(original)
+            }
         }
     }
     
