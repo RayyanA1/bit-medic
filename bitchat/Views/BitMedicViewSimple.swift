@@ -49,6 +49,7 @@ struct BitMedicViewSimple: View {
     @State private var showingCreationAlert = false
     @State private var creationAlertMessage = ""
     @State private var creationErrorMessage = ""
+    @State private var creationSuccessMessage = ""
     
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "NetworkMonitor")
@@ -176,7 +177,7 @@ struct BitMedicViewSimple: View {
                     VStack(spacing: 15) {
                         VStack(alignment: .leading) {
                             HStack {
-                                Text("Patient ID (6 digits)")
+                                Text("Patient ID")
                                     .foregroundColor(textColor)
                                     .font(.caption)
                                 Text("*")
@@ -184,7 +185,7 @@ struct BitMedicViewSimple: View {
                                     .font(.caption)
                                     .fontWeight(.bold)
                             }
-                            TextField("123456", text: $newPatientId)
+                            TextField("Enter patient ID", text: $newPatientId)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
@@ -324,7 +325,7 @@ struct BitMedicViewSimple: View {
                         createNewPatient()
                     }
                     .foregroundColor(.green)
-                    .disabled(newPatientId.count != 6 || newPatientName.isEmpty || newPatientDOB.isEmpty || isCreatingPatient || !isValidDOB())
+                    .disabled(newPatientId.isEmpty || newPatientName.isEmpty || newPatientDOB.isEmpty || isCreatingPatient || !isValidDOB())
                 }
                 
                 if isCreatingPatient {
@@ -335,6 +336,13 @@ struct BitMedicViewSimple: View {
                 if !creationErrorMessage.isEmpty {
                     Text(creationErrorMessage)
                         .foregroundColor(.red)
+                        .font(.caption)
+                        .padding(.top, 10)
+                }
+                
+                if !creationSuccessMessage.isEmpty {
+                    Text(creationSuccessMessage)
+                        .foregroundColor(.green)
                         .font(.caption)
                         .padding(.top, 10)
                 }
@@ -563,16 +571,19 @@ struct BitMedicViewSimple: View {
     }
     
     private func searchPatientsViaMesh(_ searchTerm: String) {
-        // Send search request via mesh network
-        let searchMessage = "PingToServer: /search?q=\(searchTerm)"
-        
-        // Notify PingToServerHandler that we're making this request so it can track it
+        // Notify PingToServerHandler that we're making this request so it can track it BEFORE sending
         NotificationCenter.default.post(
             name: NSNotification.Name("BitMedicSearchRequestMade"),
             object: searchTerm  // Keep original case for tracking
         )
         
+        print("DEBUG: Sent search tracking notification for: '\(searchTerm)'")
+        
+        // Send search request via mesh network
+        let searchMessage = "PingToServer: /search?q=\(searchTerm)"
         viewModel.sendMessage(searchMessage)
+        
+        print("DEBUG: Sent mesh search message: '\(searchMessage)'")
         
         // Set a timeout for mesh search
         DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
@@ -706,8 +717,12 @@ struct BitMedicViewSimple: View {
             object: nil,
             queue: .main
         ) { notification in
+            print("DEBUG: Received BitMedicSearchResponse notification")
             if let message = notification.object as? BitchatMessage {
+                print("DEBUG: Processing message content: \(String(message.content.prefix(100)))")
                 self.handleMeshSearchResponse(message.content)
+            } else {
+                print("DEBUG: Notification object is not a BitchatMessage")
             }
         }
         
@@ -727,19 +742,25 @@ struct BitMedicViewSimple: View {
         if content.hasPrefix("Results: ") {
             let responseContent = String(content.dropFirst("Results: ".count))
             
+            print("DEBUG: Processing mesh search response content: \(responseContent)")
+            
             // Try to parse as JSON if it looks like structured data
             if responseContent.hasPrefix("[") && responseContent.hasSuffix("]") {
                 // This looks like JSON array
                 if let data = responseContent.data(using: .utf8) {
                     do {
                         let decodedPatients = try JSONDecoder().decode([Patient].self, from: data)
+                        print("DEBUG: Successfully decoded \(decodedPatients.count) patients from mesh")
                         self.patients = decodedPatients
                         self.showingSuggestions = !decodedPatients.isEmpty
                         return
                     } catch {
-                        print("Failed to decode mesh response as patients: \(error)")
+                        print("DEBUG: Failed to decode mesh response as patients: \(error)")
+                        print("DEBUG: Raw JSON data: \(responseContent)")
                     }
                 }
+            } else {
+                print("DEBUG: Response doesn't look like JSON array: \(String(responseContent.prefix(50)))")
             }
             
             // Fallback: treat as simple text response
@@ -781,10 +802,25 @@ struct BitMedicViewSimple: View {
             
             if responseContent.contains("success") || responseContent.contains("created") {
                 print("Patient created successfully via mesh")
-                resetForm()
-                showingNewPatientForm = false
+                creationSuccessMessage = "Patient created successfully via mesh!"
+                
+                // Show success message for 2 seconds then close form
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    resetForm()
+                    showingNewPatientForm = false
+                }
+            } else if responseContent.contains("error") {
+                // Extract error message from "error - message" format
+                let errorMsg: String
+                if responseContent.hasPrefix("error - ") {
+                    errorMsg = String(responseContent.dropFirst("error - ".count))
+                } else {
+                    errorMsg = responseContent
+                }
+                print("Patient creation failed via mesh: \(errorMsg)")
+                creationErrorMessage = "Failed via mesh: \(errorMsg)"
             } else {
-                let errorMsg = "Failed to create patient via mesh: \(responseContent)"
+                let errorMsg = "Unknown response from mesh: \(responseContent)"
                 print(errorMsg)
                 creationErrorMessage = errorMsg
             }
@@ -805,6 +841,7 @@ struct BitMedicViewSimple: View {
         newPatientNotes = ""
         isCreatingPatient = false
         creationErrorMessage = ""
+        creationSuccessMessage = ""
     }
     
     private func isValidDOB() -> Bool {
@@ -822,10 +859,11 @@ struct BitMedicViewSimple: View {
     }
     
     private func createNewPatient() {
-        guard newPatientId.count == 6, !newPatientName.isEmpty, !newPatientDOB.isEmpty, isValidDOB() else { return }
+        guard !newPatientId.isEmpty, !newPatientName.isEmpty, !newPatientDOB.isEmpty, isValidDOB() else { return }
         
         isCreatingPatient = true
         creationErrorMessage = ""
+        creationSuccessMessage = ""
         
         var patientData: [String: Any] = [
             "id": Int(newPatientId) ?? 0,
@@ -905,8 +943,13 @@ struct BitMedicViewSimple: View {
                     
                     if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
                         print("Patient created successfully")
-                        self.resetForm()
-                        self.showingNewPatientForm = false
+                        self.creationSuccessMessage = "Patient created successfully!"
+                        
+                        // Show success message for 2 seconds then close form
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            self.resetForm()
+                            self.showingNewPatientForm = false
+                        }
                     } else {
                         let errorMsg: String
                         if let data = data, let responseBody = String(data: data, encoding: .utf8) {
@@ -928,6 +971,13 @@ struct BitMedicViewSimple: View {
     }
     
     private func createPatientViaMesh(jsonString: String) {
+        // Check if we have mesh connectivity before sending
+        if !viewModel.isConnected || viewModel.connectedPeers.count == 0 {
+            isCreatingPatient = false
+            creationErrorMessage = "No mesh network connectivity. Unable to create patient offline."
+            return
+        }
+        
         // Send patient creation request via mesh network
         let createMessage = "PingToServer: /createpatient \(jsonString)"
         
@@ -943,7 +993,7 @@ struct BitMedicViewSimple: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
             if self.isCreatingPatient {
                 self.isCreatingPatient = false
-                self.creationErrorMessage = "Patient creation timed out via mesh network"
+                self.creationErrorMessage = "Patient creation timed out. No response from mesh network."
             }
         }
     }
