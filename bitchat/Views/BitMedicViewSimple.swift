@@ -48,6 +48,7 @@ struct BitMedicViewSimple: View {
     @State private var newPatientNotes = ""
     @State private var showingCreationAlert = false
     @State private var creationAlertMessage = ""
+    @State private var creationErrorMessage = ""
     
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "NetworkMonitor")
@@ -171,22 +172,89 @@ struct BitMedicViewSimple: View {
                     .font(.title)
                     .foregroundColor(textColor)
                 
-                VStack(spacing: 15) {
-                    VStack(alignment: .leading) {
-                        Text("Patient ID (6 digits)")
-                            .foregroundColor(textColor)
-                            .font(.caption)
-                        TextField("123456", text: $newPatientId)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                ScrollView {
+                    VStack(spacing: 15) {
+                        VStack(alignment: .leading) {
+                            Text("Patient ID (6 digits) *")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("123456", text: $newPatientId)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Patient Name *")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("Enter patient name", text: $newPatientName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Date of Birth")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("YYYY-MM-DD", text: $newPatientDOB)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Gender")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("Male/Female/Other", text: $newPatientGender)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Blood Type")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("A+, B-, O+, etc.", text: $newPatientBloodType)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Address")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("Enter address", text: $newPatientAddress)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Phone Number")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("Enter phone number", text: $newPatientPhone)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Allergies")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("Enter allergies", text: $newPatientAllergies)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Medical Conditions")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("Enter medical conditions", text: $newPatientConditions)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Notes")
+                                .foregroundColor(textColor)
+                                .font(.caption)
+                            TextField("Enter notes", text: $newPatientNotes)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
                     }
-                    
-                    VStack(alignment: .leading) {
-                        Text("Patient Name")
-                            .foregroundColor(textColor)
-                            .font(.caption)
-                        TextField("Enter patient name", text: $newPatientName)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
+                    .padding(.horizontal)
                 }
                 
                 HStack(spacing: 20) {
@@ -200,12 +268,19 @@ struct BitMedicViewSimple: View {
                         createNewPatient()
                     }
                     .foregroundColor(.green)
-                    .disabled(newPatientId.count != 6 || newPatientName.isEmpty || isCreatingPatient)
+                    .disabled(newPatientId.count != 6 || newPatientName.isEmpty || isCreatingPatient || !isValidDOB())
                 }
                 
                 if isCreatingPatient {
                     ProgressView("Creating patient...")
                         .foregroundColor(textColor)
+                }
+                
+                if !creationErrorMessage.isEmpty {
+                    Text(creationErrorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding(.top, 10)
                 }
             }
             .padding(30)
@@ -652,22 +727,73 @@ struct BitMedicViewSimple: View {
     private func resetForm() {
         newPatientId = ""
         newPatientName = ""
+        newPatientDOB = ""
+        newPatientGender = ""
+        newPatientBloodType = ""
+        newPatientAddress = ""
+        newPatientPhone = ""
+        newPatientAllergies = ""
+        newPatientConditions = ""
+        newPatientNotes = ""
         isCreatingPatient = false
+        creationErrorMessage = ""
+    }
+    
+    private func isValidDOB() -> Bool {
+        // DOB is optional, so empty is valid
+        if newPatientDOB.isEmpty {
+            return true
+        }
+        
+        // Check format YYYY-MM-DD
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.isLenient = false
+        
+        return dateFormatter.date(from: newPatientDOB) != nil
     }
     
     private func createNewPatient() {
         guard newPatientId.count == 6, !newPatientName.isEmpty else { return }
         
         isCreatingPatient = true
+        creationErrorMessage = ""
         
-        let patientData: [String: Any] = [
+        var patientData: [String: Any] = [
             "id": Int(newPatientId) ?? 0,
             "name": newPatientName
         ]
         
+        // Add optional fields if provided
+        if !newPatientDOB.isEmpty {
+            patientData["DOB"] = newPatientDOB
+        }
+        if !newPatientGender.isEmpty {
+            patientData["gender"] = newPatientGender
+        }
+        if !newPatientBloodType.isEmpty {
+            patientData["blood_type"] = newPatientBloodType
+        }
+        if !newPatientAddress.isEmpty {
+            patientData["address"] = newPatientAddress
+        }
+        if !newPatientPhone.isEmpty {
+            patientData["phone_number"] = newPatientPhone
+        }
+        if !newPatientAllergies.isEmpty {
+            patientData["allergies"] = newPatientAllergies
+        }
+        if !newPatientConditions.isEmpty {
+            patientData["medical_conditions"] = newPatientConditions
+        }
+        if !newPatientNotes.isEmpty {
+            patientData["patient_notes"] = newPatientNotes
+        }
+        
         guard let jsonData = try? JSONSerialization.data(withJSONObject: patientData),
               let url = URL(string: "https://addpatient-uob3euoulq-uc.a.run.app/") else {
             isCreatingPatient = false
+            creationErrorMessage = "Failed to prepare request data"
             return
         }
         
@@ -676,19 +802,38 @@ struct BitMedicViewSimple: View {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
         
+        print("Creating patient with data: \(String(data: jsonData, encoding: .utf8) ?? "Unable to encode")")
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isCreatingPatient = false
                 
                 if let error = error {
-                    print("Error creating patient: \(error)")
+                    let errorMsg = "Network error: \(error.localizedDescription)"
+                    print("Error creating patient: \(errorMsg)")
+                    self.creationErrorMessage = errorMsg
                 } else if let httpResponse = response as? HTTPURLResponse {
+                    print("Server response code: \(httpResponse.statusCode)")
+                    
                     if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+                        print("Patient created successfully")
                         self.resetForm()
                         self.showingNewPatientForm = false
                     } else {
+                        let errorMsg: String
+                        if let data = data, let responseBody = String(data: data, encoding: .utf8) {
+                            errorMsg = "Server error \(httpResponse.statusCode): \(responseBody)"
+                            print("Server error response: \(responseBody)")
+                        } else {
+                            errorMsg = "Server error: HTTP \(httpResponse.statusCode)"
+                        }
                         print("Server error: \(httpResponse.statusCode)")
+                        self.creationErrorMessage = errorMsg
                     }
+                } else {
+                    let errorMsg = "Invalid response from server"
+                    print(errorMsg)
+                    self.creationErrorMessage = errorMsg
                 }
             }
         }.resume()
