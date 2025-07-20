@@ -33,6 +33,23 @@ struct BitMedicViewSimple: View {
     @State private var activeAPITask: URLSessionDataTask?
     @State private var currentSearchTerm: String?
     
+    // New Patient Form States
+    @State private var showingNewPatientForm = false
+    @State private var isCreatingPatient = false
+    @State private var newPatientId = ""
+    @State private var newPatientName = ""
+    @State private var newPatientDOB = ""
+    @State private var newPatientGender = ""
+    @State private var newPatientBloodType = ""
+    @State private var newPatientAddress = ""
+    @State private var newPatientPhone = ""
+    @State private var newPatientAllergies = ""
+    @State private var newPatientConditions = ""
+    @State private var newPatientNotes = ""
+    @State private var showingCreationAlert = false
+    @State private var creationAlertMessage = ""
+    @State private var creationErrorMessage = ""
+    
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "NetworkMonitor")
     
@@ -57,6 +74,12 @@ struct BitMedicViewSimple: View {
                     .foregroundColor(textColor)
                 
                 Spacer()
+                
+                Button("Add Patient") {
+                    showingNewPatientForm = true
+                }
+                .foregroundColor(.green)
+                .font(.caption)
                 
                 Button(action: {
                     debugMode.toggle()
@@ -142,6 +165,182 @@ struct BitMedicViewSimple: View {
         .onDisappear {
             networkMonitor.cancel()
             connectivityTimer?.invalidate()
+        }
+        .sheet(isPresented: $showingNewPatientForm) {
+            VStack(spacing: 20) {
+                Text("Add New Patient")
+                    .font(.title)
+                    .foregroundColor(textColor)
+                
+                ScrollView {
+                    VStack(spacing: 15) {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Patient ID (6 digits)")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            TextField("123456", text: $newPatientId)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Patient Name")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            TextField("Enter patient name", text: $newPatientName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("Date of Birth")
+                                    .foregroundColor(textColor)
+                                    .font(.caption)
+                                Text("*")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            TextField("YYYY-MM-DD", text: $newPatientDOB)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Gender")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            Picker("", selection: $newPatientGender) {
+                                Text("Select Gender").tag("")
+                                Text("Male").tag("Male")
+                                Text("Female").tag("Female")
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Blood Type")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            TextField("A+, B-, O+, etc.", text: $newPatientBloodType)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Address")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            TextField("Enter address", text: $newPatientAddress)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Phone Number")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            TextField("Enter phone number", text: $newPatientPhone)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Allergies")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            TextEditor(text: $newPatientAllergies)
+                                .frame(minHeight: 60, maxHeight: 120)
+                                .padding(4)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Medical Conditions")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            TextEditor(text: $newPatientConditions)
+                                .frame(minHeight: 60, maxHeight: 120)
+                                .padding(4)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Notes")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            TextEditor(text: $newPatientNotes)
+                                .frame(minHeight: 80, maxHeight: 150)
+                                .padding(4)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                
+                HStack(spacing: 20) {
+                    Button("Cancel") {
+                        resetForm()
+                        showingNewPatientForm = false
+                    }
+                    .foregroundColor(.red)
+                    
+                    Button("Create Patient") {
+                        createNewPatient()
+                    }
+                    .foregroundColor(.green)
+                    .disabled(newPatientId.count != 6 || newPatientName.isEmpty || newPatientDOB.isEmpty || isCreatingPatient || !isValidDOB())
+                }
+                
+                if isCreatingPatient {
+                    ProgressView("Creating patient...")
+                        .foregroundColor(textColor)
+                }
+                
+                if !creationErrorMessage.isEmpty {
+                    Text(creationErrorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding(.top, 10)
+                }
+            }
+            .padding(30)
+            .background(backgroundColor)
         }
     }
     
@@ -520,6 +719,16 @@ struct BitMedicViewSimple: View {
                 self.handleMeshSearchResponse(message.content)
             }
         }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("BitMedicCreatePatientResponse"),
+            object: nil,
+            queue: .main
+        ) { notification in
+            if let message = notification.object as? BitchatMessage {
+                self.handleMeshCreatePatientResponse(message.content)
+            }
+        }
     }
     
     private func clearDebugMessages() {
@@ -576,5 +785,181 @@ struct BitMedicViewSimple: View {
         
         // Stop searching indicator after processing
         isSearching = false
+    }
+    
+    private func handleMeshCreatePatientResponse(_ content: String) {
+        // Check if this is a patient creation response
+        if content.hasPrefix("CreatePatientResult: ") {
+            let responseContent = String(content.dropFirst("CreatePatientResult: ".count))
+            
+            isCreatingPatient = false
+            
+            if responseContent.contains("success") || responseContent.contains("created") {
+                print("Patient created successfully via mesh")
+                resetForm()
+                showingNewPatientForm = false
+            } else {
+                let errorMsg = "Failed to create patient via mesh: \(responseContent)"
+                print(errorMsg)
+                creationErrorMessage = errorMsg
+            }
+        }
+    }
+    
+    // MARK: - New Patient Functions
+    private func resetForm() {
+        newPatientId = ""
+        newPatientName = ""
+        newPatientDOB = ""
+        newPatientGender = ""
+        newPatientBloodType = ""
+        newPatientAddress = ""
+        newPatientPhone = ""
+        newPatientAllergies = ""
+        newPatientConditions = ""
+        newPatientNotes = ""
+        isCreatingPatient = false
+        creationErrorMessage = ""
+    }
+    
+    private func isValidDOB() -> Bool {
+        // DOB is now required, so empty is invalid
+        if newPatientDOB.isEmpty {
+            return false
+        }
+        
+        // Check format YYYY-MM-DD
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.isLenient = false
+        
+        return dateFormatter.date(from: newPatientDOB) != nil
+    }
+    
+    private func createNewPatient() {
+        guard newPatientId.count == 6, !newPatientName.isEmpty, !newPatientDOB.isEmpty, isValidDOB() else { return }
+        
+        isCreatingPatient = true
+        creationErrorMessage = ""
+        
+        var patientData: [String: Any] = [
+            "id": Int(newPatientId) ?? 0,
+            "name": newPatientName,
+            "DOB": newPatientDOB
+        ]
+        
+        // Add optional fields if provided
+        if !newPatientGender.isEmpty {
+            patientData["gender"] = newPatientGender
+        }
+        if !newPatientBloodType.isEmpty {
+            patientData["blood_type"] = newPatientBloodType
+        }
+        if !newPatientAddress.isEmpty {
+            patientData["address"] = newPatientAddress
+        }
+        if !newPatientPhone.isEmpty {
+            patientData["phone_number"] = newPatientPhone
+        }
+        if !newPatientAllergies.isEmpty {
+            patientData["allergies"] = newPatientAllergies
+        }
+        if !newPatientConditions.isEmpty {
+            patientData["medical_conditions"] = newPatientConditions
+        }
+        if !newPatientNotes.isEmpty {
+            patientData["patient_notes"] = newPatientNotes
+        }
+        
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: patientData),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            isCreatingPatient = false
+            creationErrorMessage = "Failed to prepare request data"
+            return
+        }
+        
+        print("Creating patient with data: \(jsonString)")
+        
+        // Test connectivity to determine how to send the request
+        testInternetConnectivity()
+        
+        // Add a small delay to allow connectivity test to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if self.isConnectedToInternet {
+                // Direct API call when online
+                self.createPatientDirectly(jsonData: jsonData)
+            } else {
+                // Use mesh network when offline
+                self.createPatientViaMesh(jsonString: jsonString)
+            }
+        }
+    }
+    
+    private func createPatientDirectly(jsonData: Data) {
+        guard let url = URL(string: "https://addpatient-uob3euoulq-uc.a.run.app/") else {
+            isCreatingPatient = false
+            creationErrorMessage = "Invalid server URL"
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = jsonData
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isCreatingPatient = false
+                
+                if let error = error {
+                    let errorMsg = "Network error: \(error.localizedDescription)"
+                    print("Error creating patient: \(errorMsg)")
+                    self.creationErrorMessage = errorMsg
+                } else if let httpResponse = response as? HTTPURLResponse {
+                    print("Server response code: \(httpResponse.statusCode)")
+                    
+                    if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+                        print("Patient created successfully")
+                        self.resetForm()
+                        self.showingNewPatientForm = false
+                    } else {
+                        let errorMsg: String
+                        if let data = data, let responseBody = String(data: data, encoding: .utf8) {
+                            errorMsg = "Server error \(httpResponse.statusCode): \(responseBody)"
+                            print("Server error response: \(responseBody)")
+                        } else {
+                            errorMsg = "Server error: HTTP \(httpResponse.statusCode)"
+                        }
+                        print("Server error: \(httpResponse.statusCode)")
+                        self.creationErrorMessage = errorMsg
+                    }
+                } else {
+                    let errorMsg = "Invalid response from server"
+                    print(errorMsg)
+                    self.creationErrorMessage = errorMsg
+                }
+            }
+        }.resume()
+    }
+    
+    private func createPatientViaMesh(jsonString: String) {
+        // Send patient creation request via mesh network
+        let createMessage = "PingToServer: /createpatient \(jsonString)"
+        
+        // Notify PingToServerHandler that we're making this request so it can track it
+        NotificationCenter.default.post(
+            name: NSNotification.Name("BitMedicCreatePatientRequestMade"),
+            object: jsonString
+        )
+        
+        viewModel.sendMessage(createMessage)
+        
+        // Set a timeout for mesh patient creation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+            if self.isCreatingPatient {
+                self.isCreatingPatient = false
+                self.creationErrorMessage = "Patient creation timed out via mesh network"
+            }
+        }
     }
 }
