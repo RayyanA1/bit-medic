@@ -346,7 +346,7 @@ struct BitMedicViewSimple: View {
             .padding(.horizontal)
             
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 4) {
                     let messages = getDebugMessages()
                     
                     if messages.isEmpty {
@@ -355,31 +355,14 @@ struct BitMedicViewSimple: View {
                             .italic()
                             .padding()
                     } else {
-                        ForEach(messages, id: \.id) { message in
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack {
-                                    Text(message.sender)
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(message.sender == "system" ? .orange : .blue)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatTime(message.timestamp))
-                                        .font(.caption2)
-                                        .foregroundColor(.gray)
-                                }
-                                
-                                Text(message.content)
-                                    .font(.caption)
-                                    .padding(.vertical, 2)
-                                    .padding(.horizontal, 6)
-                                    .background(message.sender == "system" ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
-                                    .cornerRadius(4)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                        }
+                        // Create one big selectable text block with all messages
+                        Text(messages.map { message in
+                            "\(message.sender) [\(formatTime(message.timestamp))]\n\(message.content)"
+                        }.joined(separator: "\n\n"))
+                            .font(.caption)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
                     }
                 }
             }
@@ -464,7 +447,7 @@ struct BitMedicViewSimple: View {
         // Cancel any previous request
         cancelPreviousSearch()
         
-        currentSearchTerm = searchTerm.lowercased()
+        currentSearchTerm = searchTerm  // Keep original case for API and tracking
         isSearching = true
         
         // Test connectivity immediately before search to ensure current status
@@ -473,7 +456,7 @@ struct BitMedicViewSimple: View {
         // Add a small delay to allow connectivity test to complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             // Only proceed if this is still the current search term
-            guard self.currentSearchTerm == searchTerm.lowercased() else { return }
+            guard self.currentSearchTerm == searchTerm else { return }
             
             if self.isConnectedToInternet {
                 // Direct API call when online
@@ -512,7 +495,7 @@ struct BitMedicViewSimple: View {
         activeAPITask = URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 // Only process if this is still the current search term
-                guard self.currentSearchTerm == searchTerm.lowercased() else { return }
+                guard self.currentSearchTerm == searchTerm else { return }
                 
                 self.isSearching = false
                 self.activeAPITask = nil
@@ -530,7 +513,7 @@ struct BitMedicViewSimple: View {
         // Notify PingToServerHandler that we're making this request so it can track it
         NotificationCenter.default.post(
             name: NSNotification.Name("BitMedicSearchRequestMade"),
-            object: searchTerm.lowercased()
+            object: searchTerm  // Keep original case for tracking
         )
         
         viewModel.sendMessage(searchMessage)

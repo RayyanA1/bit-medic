@@ -74,57 +74,59 @@ class PingToServerHandler {
     func handleIncomingBluetoothMessage(_ message: String) {
         let prefix = "PingToServer:"
         
-        // Check if message starts with the required prefix
-        guard message.hasPrefix(prefix) else {
-            // Check if this is a search response (Results: prefix)
-            if message.hasPrefix("Results: ") {
-                showFeedbackMessage("📥 Mesh Response: Received results message")
-                
-                // Extract the original search term from the response to check if we made this request
-                let responseContent = String(message.dropFirst("Results: ".count))
-                
-                showFeedbackMessage("🔍 Current Tracking: currentSearchTerm='\(currentSearchTerm ?? "nil")', activeSearchRequests=\(activeSearchRequests)")
-                
-                // Try to determine if this response is for a search this device initiated
-                var isMyRequest = false
-                
-                // Only process if this response is for the current search term
-                if let currentTerm = currentSearchTerm {
-                    if responseContent.contains("\"name\"") || responseContent.lowercased().contains(currentTerm) {
-                        // This response matches our current search term
-                        isMyRequest = true
-                        activeSearchRequests.remove(currentTerm)
-                        currentSearchTerm = nil  // Clear current search term after processing
-                        showFeedbackMessage("✅ Match Found: This response is for our search term '\(currentTerm)'")
-                    } else {
-                        showFeedbackMessage("❌ No Match: Response doesn't contain our search term '\(currentTerm)'")
-                    }
+        // Check if this is a search response (Results: prefix) - handle but don't block other processing
+        if message.hasPrefix("Results: ") {
+            showFeedbackMessage("📥 Mesh Response: Received results message")
+            
+            // Extract the original search term from the response to check if we made this request
+            let responseContent = String(message.dropFirst("Results: ".count))
+            
+            showFeedbackMessage("🔍 Current Tracking: currentSearchTerm='\(currentSearchTerm ?? "nil")', activeSearchRequests=\(activeSearchRequests)")
+            
+            // Try to determine if this response is for a search this device initiated
+            var isMyRequest = false
+            
+            // Only process if this response is for the current search term
+            if let currentTerm = currentSearchTerm {
+                if responseContent.contains("\"name\"") || responseContent.lowercased().contains(currentTerm.lowercased()) {
+                    // This response matches our current search term
+                    isMyRequest = true
+                    activeSearchRequests.remove(currentTerm)
+                    currentSearchTerm = nil  // Clear current search term after processing
+                    showFeedbackMessage("✅ Match Found: This response is for our search term '\(currentTerm)'")
                 } else {
-                    showFeedbackMessage("❌ No Current Search: currentSearchTerm is nil")
+                    showFeedbackMessage("❌ No Match: Response doesn't contain our search term '\(currentTerm)'")
                 }
-                
-                // Only process the response if this device made the original request
-                if isMyRequest {
-                    showFeedbackMessage("🎯 Processing: Updating typeahead with results")
-                    // This is a search response received via mesh network for a request we made
-                    // Notify the BitMedic UI directly
-                    DispatchQueue.main.async {
-                        NotificationCenter.default.post(
-                            name: NSNotification.Name("BitMedicSearchResponse"),
-                            object: BitchatMessage(
-                                sender: "system",
-                                content: message,
-                                timestamp: Date(),
-                                isRelay: false,
-                                isPrivate: false
-                            )
-                        )
-                    }
-                } else {
-                    showFeedbackMessage("🚫 Ignoring: This response is not for our search")
-                }
+            } else {
+                showFeedbackMessage("❌ No Current Search: currentSearchTerm is nil")
             }
-            return // Not a ping-to-server message, ignore
+            
+            // Only process the response if this device made the original request
+            if isMyRequest {
+                showFeedbackMessage("🎯 Processing: Updating typeahead with results")
+                // This is a search response received via mesh network for a request we made
+                // Notify the BitMedic UI directly
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("BitMedicSearchResponse"),
+                        object: BitchatMessage(
+                            sender: "system",
+                            content: message,
+                            timestamp: Date(),
+                            isRelay: false,
+                            isPrivate: false
+                        )
+                    )
+                }
+            } else {
+                showFeedbackMessage("🚫 Ignoring: This response is not for our search")
+            }
+            // Continue processing - don't return, let message flow through as normal user message
+        }
+        
+        // Check if message starts with PingToServer prefix for other handling
+        if !message.hasPrefix(prefix) {
+            return // Not a ping-to-server message, we're done processing
         }
         
         // Extract the actual message after the prefix
@@ -219,21 +221,34 @@ class PingToServerHandler {
     
     // MARK: - Mesh Network Communication
     private func sendToMeshNetwork(_ message: String) {
-        guard let chatViewModel = chatViewModel else { return }
+        guard let chatViewModel = chatViewModel else { 
+            showFeedbackMessage("❌ Error: chatViewModel is nil")
+            return 
+        }
         
         DispatchQueue.main.async {
             // Save the current channel context
             let originalChannel = chatViewModel.currentChannel
+            self.showFeedbackMessage("🔄 Channel Switch: From '\(originalChannel ?? "none")' to '#bitmedic_secure'")
+            
+            // Check if we're joined to the secure channel
+            let secureChannel = "#bitmedic_secure"
+            if !chatViewModel.joinedChannels.contains(secureChannel) {
+                self.showFeedbackMessage("⚠️ Warning: Not joined to \(secureChannel)")
+            }
             
             // Switch to the BitMedic secure channel to send the response
-            chatViewModel.switchToChannel("#bitmedic_secure")
-            
+            chatViewModel.switchToChannel(secureChannel)
+            self.showFeedbackMessage("🎯 Sending: '\(message)' via mesh network")
+
             // Send message to mesh network
             chatViewModel.sendMessage(message)
+            self.showFeedbackMessage("✅ Sent: Message transmission completed")
             
             // Restore the original channel context
             if let original = originalChannel {
                 chatViewModel.switchToChannel(original)
+                self.showFeedbackMessage("🔄 Channel Restored: Back to '\(original)'")
             }
         }
     }
@@ -396,7 +411,7 @@ class PingToServerHandler {
     private func showSearchResponse(_ message: String) {
         showFeedbackMessage("📤 Sending Response: Broadcasting '\(message)' to mesh network")
         
-        // Send response back through the mesh network (ONLY the actual response)
+        // Send response back through the mesh network as a user message
         sendToMeshNetwork(message)
         
         showFeedbackMessage("📡 Response Sent: Message should now be visible to requesting peer")
