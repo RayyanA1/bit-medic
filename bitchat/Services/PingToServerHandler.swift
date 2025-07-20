@@ -6,15 +6,55 @@ class PingToServerHandler {
     private let monitorQueue = DispatchQueue(label: "NetworkMonitor")
     private var isConnectedToInternet = false
     private let serverURL: String = "https://jsonplaceholder.typicode.com/posts"
+    private var activeSearchRequests: Set<String> = []  // Track search requests this device made
+    private var currentSearchTerm: String?  // Track the most recent search term
+    private var activeAPITask: URLSessionDataTask?  // Track active API request for cancellation
     
     weak var chatViewModel: ChatViewModel?
     
     init() {
         startNetworkMonitoring()
+        setupNotificationObservers()
     }
     
     deinit {
         networkMonitor.cancel()
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Notification Observers
+    private func setupNotificationObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSearchRequestMade(_:)),
+            name: NSNotification.Name("BitMedicSearchRequestMade"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleSearchRequestMade(_ notification: Notification) {
+        if let searchTerm = notification.object as? String {
+            // Cancel any previous search requests
+            cancelPreviousSearchRequests()
+            
+            // Set this as the current search term
+            currentSearchTerm = searchTerm
+            activeSearchRequests.insert(searchTerm)
+        }
+    }
+    
+    private func cancelPreviousSearchRequests() {
+        // Cancel any active API request
+        activeAPITask?.cancel()
+        activeAPITask = nil
+        
+        // Clear previous search requests except the current one
+        if let current = currentSearchTerm {
+            activeSearchRequests.removeAll()
+            activeSearchRequests.insert(current)
+        } else {
+            activeSearchRequests.removeAll()
+        }
     }
     
     // MARK: - Network Monitoring
@@ -34,19 +74,38 @@ class PingToServerHandler {
         guard message.hasPrefix(prefix) else {
             // Check if this is a search response (Results: prefix)
             if message.hasPrefix("Results: ") {
-                // This is a search response received via mesh network
-                // Notify the BitMedic UI directly
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(
-                        name: NSNotification.Name("BitMedicSearchResponse"),
-                        object: BitchatMessage(
-                            sender: "system",
-                            content: message,
-                            timestamp: Date(),
-                            isRelay: false,
-                            isPrivate: false
+                // Extract the original search term from the response to check if we made this request
+                let responseContent = String(message.dropFirst("Results: ".count))
+                
+                // Try to determine if this response is for a search this device initiated
+                var isMyRequest = false
+                
+                // Only process if this response is for the current search term
+                if let currentTerm = currentSearchTerm {
+                    if responseContent.contains("\"name\"") || responseContent.lowercased().contains(currentTerm) {
+                        // This response matches our current search term
+                        isMyRequest = true
+                        activeSearchRequests.remove(currentTerm)
+                        currentSearchTerm = nil  // Clear current search term after processing
+                    }
+                }
+                
+                // Only process the response if this device made the original request
+                if isMyRequest {
+                    // This is a search response received via mesh network for a request we made
+                    // Notify the BitMedic UI directly
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("BitMedicSearchResponse"),
+                            object: BitchatMessage(
+                                sender: "system",
+                                content: message,
+                                timestamp: Date(),
+                                isRelay: false,
+                                isPrivate: false
+                            )
                         )
-                    )
+                    }
                 }
             }
             return // Not a ping-to-server message, ignore
@@ -59,6 +118,18 @@ class PingToServerHandler {
         
         // Handle BitMedic search queries specially
         if extractedMessage.hasPrefix("/search?q=") {
+            // Extract search term to track this request
+            let queryPrefix = "/search?q="
+            let searchTerm = String(extractedMessage.dropFirst(queryPrefix.count))
+                .removingPercentEncoding ?? ""
+            
+            // Cancel any previous search requests
+            cancelPreviousSearchRequests()
+            
+            // Set this as the current search term and add to active requests
+            currentSearchTerm = searchTerm.lowercased()
+            activeSearchRequests.insert(searchTerm.lowercased())
+            
             handleBitMedicSearch(extractedMessage)
             return
         }
@@ -205,13 +276,23 @@ class PingToServerHandler {
         print("Calling patient search API with GET: \(url)")
         showFeedbackMessage("API Call: GET \(url)")
         
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        // Cancel any previous API request
+        activeAPITask?.cancel()
+        
+        activeAPITask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
-                self?.handlePatientSearchResponse(data: data, response: response, error: error, searchTerm: searchTerm)
+                guard let strongSelf = self else { return }
+                
+                // Only process if this is still the current search term
+                if strongSelf.currentSearchTerm == searchTerm.lowercased() {
+                    strongSelf.handlePatientSearchResponse(data: data, response: response, error: error, searchTerm: searchTerm)
+                }
+                // Clear the task reference
+                strongSelf.activeAPITask = nil
             }
         }
         
-        task.resume()
+        activeAPITask?.resume()
     }
     
     private func handlePatientSearchResponse(data: Data?, response: URLResponse?, error: Error?, searchTerm: String) {
