@@ -1274,8 +1274,14 @@ class BluetoothMeshService: NSObject {
     }
     
     private func broadcastPacket(_ packet: BitchatPacket) {
+        // Demo: Show mesh transmission for search-related messages only
+        if let message = BitchatMessage.fromBinaryPayload(packet.payload),
+           (message.content.hasPrefix("Results:") || message.content.contains("/search?q=")) {
+            let preview = String(message.content.prefix(30))
+            print("📡 MESH: Broadcasting '\(preview)...' to \(connectedPeripherals.count + subscribedCentrals.count) peers")
+        }
+        
         guard let data = packet.toBinaryData() else { 
-            // print("[ERROR] Failed to convert packet to binary data")
             // Add to retry queue if this is a message packet AND it's our own message
             if let senderID = String(data: packet.senderID.trimmingNullBytes(), encoding: .utf8),
                senderID == self.myPeerID,
