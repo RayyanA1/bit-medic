@@ -140,13 +140,18 @@ class PingToServerHandler {
             let responseContent = String(message.dropFirst("Results: ".count))
             
             showFeedbackMessage("🔍 Current Tracking: currentSearchTerm='\(currentSearchTerm ?? "nil")', activeSearchRequests=\(activeSearchRequests)")
+            showFeedbackMessage("🔍 Response Content Preview: \(String(responseContent.prefix(100)))...")
             
             // Try to determine if this response is for a search this device initiated
             var isMyRequest = false
             
             // Only process if this response is for the current search term
             if let currentTerm = currentSearchTerm {
-                if responseContent.contains("\"name\"") || responseContent.lowercased().contains(currentTerm.lowercased()) {
+                let containsNames = responseContent.contains("\"name\"")
+                let containsTerm = responseContent.lowercased().contains(currentTerm.lowercased())
+                showFeedbackMessage("🔍 Match Check: containsNames=\(containsNames), containsTerm=\(containsTerm)")
+                
+                if containsNames || containsTerm {
                     // This response matches our current search term
                     isMyRequest = true
                     activeSearchRequests.remove(currentTerm)
@@ -304,6 +309,10 @@ class PingToServerHandler {
             if !chatViewModel.joinedChannels.contains(secureChannel) {
                 self.showFeedbackMessage("⚠️ Warning: Not joined to \(secureChannel)")
             }
+            
+            // Check mesh connectivity
+            self.showFeedbackMessage("🌐 Mesh Status: Connected=\(chatViewModel.isConnected), Peers=\(chatViewModel.connectedPeers.count)")
+            self.showFeedbackMessage("🌐 Connected Peers: \(chatViewModel.connectedPeers)")
             
             // Switch to the BitMedic secure channel to send the response
             chatViewModel.switchToChannel(secureChannel)
@@ -480,7 +489,9 @@ class PingToServerHandler {
         showFeedbackMessage("📤 Sending Response: Broadcasting '\(message)' to mesh network")
         
         // Send response back through the mesh network as a user message
+        showFeedbackMessage("🚀 About to call sendToMeshNetwork")
         sendToMeshNetwork(message)
+        showFeedbackMessage("🚀 Finished calling sendToMeshNetwork")
         
         showFeedbackMessage("📡 Response Sent: Message should now be visible to requesting peer")
         
