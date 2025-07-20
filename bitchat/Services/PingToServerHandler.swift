@@ -221,21 +221,34 @@ class PingToServerHandler {
     
     // MARK: - Mesh Network Communication
     private func sendToMeshNetwork(_ message: String) {
-        guard let chatViewModel = chatViewModel else { return }
+        guard let chatViewModel = chatViewModel else { 
+            showFeedbackMessage("❌ Error: chatViewModel is nil")
+            return 
+        }
         
         DispatchQueue.main.async {
             // Save the current channel context
             let originalChannel = chatViewModel.currentChannel
+            self.showFeedbackMessage("🔄 Channel Switch: From '\(originalChannel ?? "none")' to '#bitmedic_secure'")
+            
+            // Check if we're joined to the secure channel
+            let secureChannel = "#bitmedic_secure"
+            if !chatViewModel.joinedChannels.contains(secureChannel) {
+                self.showFeedbackMessage("⚠️ Warning: Not joined to \(secureChannel)")
+            }
             
             // Switch to the BitMedic secure channel to send the response
-            chatViewModel.switchToChannel("#bitmedic_secure")
-            
+            chatViewModel.switchToChannel(secureChannel)
+            self.showFeedbackMessage("🎯 Sending: '\(message)' via mesh network")
+
             // Send message to mesh network
             chatViewModel.sendMessage(message)
+            self.showFeedbackMessage("✅ Sent: Message transmission completed")
             
             // Restore the original channel context
             if let original = originalChannel {
                 chatViewModel.switchToChannel(original)
+                self.showFeedbackMessage("🔄 Channel Restored: Back to '\(original)'")
             }
         }
     }
