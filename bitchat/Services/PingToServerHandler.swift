@@ -142,24 +142,15 @@ class PingToServerHandler {
             showFeedbackMessage("🔍 Current Tracking: currentSearchTerm='\(currentSearchTerm ?? "nil")', activeSearchRequests=\(activeSearchRequests)")
             showFeedbackMessage("🔍 Response Content Preview: \(String(responseContent.prefix(100)))...")
             
-            // Try to determine if this response is for a search this device initiated
+            // Check if this response is for a request this device made
             var isMyRequest = false
             
-            // Only process if this response is for the current search term
+            // Simple check: if we have any active search requests, this response is for us
             if let currentTerm = currentSearchTerm {
-                let containsNames = responseContent.contains("\"name\"")
-                let containsTerm = responseContent.lowercased().contains(currentTerm.lowercased())
-                showFeedbackMessage("🔍 Match Check: containsNames=\(containsNames), containsTerm=\(containsTerm)")
-                
-                if containsNames || containsTerm {
-                    // This response matches our current search term
-                    isMyRequest = true
-                    activeSearchRequests.remove(currentTerm)
-                    currentSearchTerm = nil  // Clear current search term after processing
-                    showFeedbackMessage("✅ Match Found: This response is for our search term '\(currentTerm)'")
-                } else {
-                    showFeedbackMessage("❌ No Match: Response doesn't contain our search term '\(currentTerm)'")
-                }
+                isMyRequest = true
+                activeSearchRequests.remove(currentTerm)
+                currentSearchTerm = nil  // Clear current search term after processing
+                showFeedbackMessage("✅ Match Found: This response is for our search term '\(currentTerm)'")
             } else {
                 showFeedbackMessage("❌ No Current Search: currentSearchTerm is nil")
             }

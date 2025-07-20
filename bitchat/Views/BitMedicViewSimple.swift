@@ -586,13 +586,9 @@ struct BitMedicViewSimple: View {
             object: searchTerm  // Keep original case for tracking
         )
         
-        print("DEBUG: Sent search tracking notification for: '\(searchTerm)'")
-        
         // Send search request via mesh network
         let searchMessage = "PingToServer: /search?q=\(searchTerm)"
         viewModel.sendMessage(searchMessage)
-        
-        print("DEBUG: Sent mesh search message: '\(searchMessage)'")
         
         // Set a timeout for mesh search
         DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
@@ -726,12 +722,8 @@ struct BitMedicViewSimple: View {
             object: nil,
             queue: .main
         ) { notification in
-            print("DEBUG: Received BitMedicSearchResponse notification")
             if let message = notification.object as? BitchatMessage {
-                print("DEBUG: Processing message content: \(String(message.content.prefix(100)))")
                 self.handleMeshSearchResponse(message.content)
-            } else {
-                print("DEBUG: Notification object is not a BitchatMessage")
             }
         }
         
@@ -753,11 +745,12 @@ struct BitMedicViewSimple: View {
     }
     
     private func handleMeshSearchResponse(_ content: String) {
+        // Stop searching indicator after processing (like create patient does)
+        isSearching = false
+        
         // Check if this is a patient search response
         if content.hasPrefix("Results: ") {
             let responseContent = String(content.dropFirst("Results: ".count))
-            
-            print("DEBUG: Processing mesh search response content: \(responseContent)")
             
             // Try to parse as JSON if it looks like structured data
             if responseContent.hasPrefix("[") && responseContent.hasSuffix("]") {
@@ -765,17 +758,13 @@ struct BitMedicViewSimple: View {
                 if let data = responseContent.data(using: .utf8) {
                     do {
                         let decodedPatients = try JSONDecoder().decode([Patient].self, from: data)
-                        print("DEBUG: Successfully decoded \(decodedPatients.count) patients from mesh")
                         self.patients = decodedPatients
                         self.showingSuggestions = !decodedPatients.isEmpty
                         return
                     } catch {
-                        print("DEBUG: Failed to decode mesh response as patients: \(error)")
-                        print("DEBUG: Raw JSON data: \(responseContent)")
+                        // JSON parsing failed, fall through to text parsing
                     }
                 }
-            } else {
-                print("DEBUG: Response doesn't look like JSON array: \(String(responseContent.prefix(50)))")
             }
             
             // Fallback: treat as simple text response
@@ -803,9 +792,6 @@ struct BitMedicViewSimple: View {
             self.patients = extractedPatients
             self.showingSuggestions = !extractedPatients.isEmpty
         }
-        
-        // Stop searching indicator after processing
-        isSearching = false
     }
     
     private func handleMeshCreatePatientResponse(_ content: String) {
