@@ -88,7 +88,7 @@ class PingToServerHandler {
             
             // Only process if this response is for the current search term
             if let currentTerm = currentSearchTerm {
-                if responseContent.contains("\"name\"") || responseContent.lowercased().contains(currentTerm) {
+                if responseContent.contains("\"name\"") || responseContent.lowercased().contains(currentTerm.lowercased()) {
                     // This response matches our current search term
                     isMyRequest = true
                     activeSearchRequests.remove(currentTerm)
