@@ -21,6 +21,7 @@ struct Patient: Codable, Identifiable {
 
 struct BitMedicViewSimple: View {
     @EnvironmentObject var viewModel: ChatViewModel
+    @Environment(\.colorScheme) var colorScheme
     @State private var searchText = ""
     @State private var debugMode = false
     @State private var patients: [Patient] = []
@@ -32,6 +33,18 @@ struct BitMedicViewSimple: View {
     
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "NetworkMonitor")
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color.black : Color.white
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? Color.green : Color(red: 0, green: 0.5, blue: 0)
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? Color.green.opacity(0.8) : Color(red: 0, green: 0.5, blue: 0).opacity(0.8)
+    }
     
     var body: some View {
         VStack {
@@ -210,10 +223,10 @@ struct BitMedicViewSimple: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(patient.name)
                                 .font(.body)
-                                .foregroundColor(.primary)
+                                .foregroundColor(textColor)
                             Text("ID: \(patient.id)")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(secondaryTextColor)
                         }
                         Spacer()
                     }
@@ -221,16 +234,16 @@ struct BitMedicViewSimple: View {
                     .padding(.vertical, 12)
                 }
                 .buttonStyle(PlainButtonStyle())
-                .background(Color.gray.opacity(0.05))
+                .background(colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(0.05))
                 .overlay(
                     Rectangle()
                         .frame(height: 1)
-                        .foregroundColor(Color.gray.opacity(0.2)),
+                        .foregroundColor(colorScheme == .dark ? Color.gray.opacity(0.4) : Color.gray.opacity(0.2)),
                     alignment: .bottom
                 )
             }
         }
-        .background(Color.white)
+        .background(backgroundColor)
         .cornerRadius(8)
         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
         .padding(.horizontal)
