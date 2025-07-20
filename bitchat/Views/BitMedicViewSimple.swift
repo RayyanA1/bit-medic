@@ -29,6 +29,8 @@ struct BitMedicViewSimple: View {
     @State private var isSearching = false
     @State private var isConnectedToInternet = false
     @State private var connectivityTimer: Timer?
+    @State private var activeAPITask: URLSessionDataTask?
+    @State private var currentSearchTerm: String?
     
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "NetworkMonitor")
@@ -262,6 +264,10 @@ struct BitMedicViewSimple: View {
     private func searchPatients(_ searchTerm: String) {
         guard !searchTerm.isEmpty else { return }
         
+        // Cancel any previous request
+        cancelPreviousSearch()
+        
+        currentSearchTerm = searchTerm.lowercased()
         isSearching = true
         
         // Test connectivity immediately before search to ensure current status
@@ -269,6 +275,9 @@ struct BitMedicViewSimple: View {
         
         // Add a small delay to allow connectivity test to complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Only proceed if this is still the current search term
+            guard self.currentSearchTerm == searchTerm.lowercased() else { return }
+            
             if self.isConnectedToInternet {
                 // Direct API call when online
                 self.searchPatientsDirectly(searchTerm)
@@ -277,6 +286,20 @@ struct BitMedicViewSimple: View {
                 self.searchPatientsViaMesh(searchTerm)
             }
         }
+    }
+    
+    private func cancelPreviousSearch() {
+        // Cancel any active API task
+        activeAPITask?.cancel()
+        activeAPITask = nil
+        
+        // Clear current search term
+        currentSearchTerm = nil
+        
+        // Reset search state
+        isSearching = false
+        patients = []
+        showingSuggestions = false
     }
     
     private func searchPatientsDirectly(_ searchTerm: String) {
@@ -289,19 +312,30 @@ struct BitMedicViewSimple: View {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        activeAPITask = URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
+                // Only process if this is still the current search term
+                guard self.currentSearchTerm == searchTerm.lowercased() else { return }
+                
                 self.isSearching = false
+                self.activeAPITask = nil
                 self.handleAPIResponse(data: data, response: response, error: error)
             }
         }
         
-        task.resume()
+        activeAPITask?.resume()
     }
     
     private func searchPatientsViaMesh(_ searchTerm: String) {
         // Send search request via mesh network
         let searchMessage = "PingToServer: /search?q=\(searchTerm)"
+        
+        // Notify PingToServerHandler that we're making this request so it can track it
+        NotificationCenter.default.post(
+            name: NSNotification.Name("BitMedicSearchRequestMade"),
+            object: searchTerm.lowercased()
+        )
+        
         viewModel.sendMessage(searchMessage)
         
         // Set a timeout for mesh search
@@ -443,9 +477,6 @@ struct BitMedicViewSimple: View {
     }
     
     private func handleMeshSearchResponse(_ content: String) {
-        // Stop searching indicator
-        isSearching = false
-        
         // Check if this is a patient search response
         if content.hasPrefix("Results: ") {
             let responseContent = String(content.dropFirst("Results: ".count))
@@ -490,5 +521,8 @@ struct BitMedicViewSimple: View {
             self.patients = extractedPatients
             self.showingSuggestions = !extractedPatients.isEmpty
         }
+        
+        // Stop searching indicator after processing
+        isSearching = false
     }
 }
