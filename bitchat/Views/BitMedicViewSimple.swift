@@ -15,6 +15,7 @@ struct Patient: Codable, Identifiable {
     let number_of_previous_visits: Int?
     let number_of_previous_admissions: Int?
     let date_of_last_admission: String?
+    let chronic_conditions: String?
     let patient_notes: String?
     let last_record_update: String?
 }
@@ -288,7 +289,7 @@ struct BitMedicViewSimple: View {
                         }
                         
                         VStack(alignment: .leading) {
-                            Text("Medical Conditions")
+                            Text("Chronic Conditions")
                                 .foregroundColor(secondaryTextColor)
                                 .font(.caption)
                             TextEditor(text: $newPatientConditions)
@@ -565,6 +566,20 @@ struct BitMedicViewSimple: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.gray.opacity(0.1))
                                 .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Chronic Conditions")
+                                .foregroundColor(secondaryTextColor)
+                                .font(.caption)
+                            ScrollView {
+                                Text(patient.chronic_conditions ?? "No chronic conditions recorded")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .frame(minHeight: 60, maxHeight: 120)
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(6)
                         }
                         
                         VStack(alignment: .leading) {
@@ -947,6 +962,7 @@ struct BitMedicViewSimple: View {
                     number_of_previous_visits: nil,
                     number_of_previous_admissions: nil,
                     date_of_last_admission: nil,
+                    chronic_conditions: nil,
                     patient_notes: nil,
                     last_record_update: nil
                 )
@@ -1053,7 +1069,7 @@ struct BitMedicViewSimple: View {
             patientData["allergies"] = newPatientAllergies
         }
         if !newPatientConditions.isEmpty {
-            patientData["medical_conditions"] = newPatientConditions
+            patientData["chronic_conditions"] = newPatientConditions
         }
         if !newPatientNotes.isEmpty {
             patientData["patient_notes"] = newPatientNotes
