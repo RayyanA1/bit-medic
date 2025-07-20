@@ -229,6 +229,7 @@ struct BitMedicViewSimple: View {
                                 
                                 Text(message.content)
                                     .font(.caption)
+                                    .textSelection(.enabled)
                                     .padding(.vertical, 2)
                                     .padding(.horizontal, 6)
                                     .background(message.sender == "system" ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
