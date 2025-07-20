@@ -198,7 +198,7 @@ class PingToServerHandler {
         guard let chatViewModel = chatViewModel else { return }
         
         DispatchQueue.main.async {
-            // Add to local messages for visibility
+            // Add to local messages for visibility ONLY (don't send to mesh)
             let systemMessage = BitchatMessage(
                 sender: "system",
                 content: message,
@@ -207,8 +207,15 @@ class PingToServerHandler {
                 isPrivate: false
             )
             chatViewModel.messages.append(systemMessage)
-            
-            // Send response back through the mesh network
+        }
+    }
+    
+    // MARK: - Mesh Network Communication
+    private func sendToMeshNetwork(_ message: String) {
+        guard let chatViewModel = chatViewModel else { return }
+        
+        DispatchQueue.main.async {
+            // Send message to mesh network
             chatViewModel.sendMessage(message)
         }
     }
@@ -371,12 +378,12 @@ class PingToServerHandler {
     private func showSearchResponse(_ message: String) {
         showFeedbackMessage("📤 Sending Response: Broadcasting '\(message)' to mesh network")
         
-        // Send response back through the mesh network
-        showFeedbackMessage(message)
+        // Send response back through the mesh network (ONLY the actual response)
+        sendToMeshNetwork(message)
         
         showFeedbackMessage("📡 Response Sent: Message should now be visible to requesting peer")
         
-        // Also notify the BitMedic UI
+        // Also notify the BitMedic UI (local only)
         DispatchQueue.main.async {
             NotificationCenter.default.post(
                 name: NSNotification.Name("BitMedicSearchResponse"),
