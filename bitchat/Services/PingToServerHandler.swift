@@ -118,18 +118,8 @@ class PingToServerHandler {
         
         // Handle BitMedic search queries specially
         if extractedMessage.hasPrefix("/search?q=") {
-            // Extract search term to track this request
-            let queryPrefix = "/search?q="
-            let searchTerm = String(extractedMessage.dropFirst(queryPrefix.count))
-                .removingPercentEncoding ?? ""
-            
-            // Cancel any previous search requests
-            cancelPreviousSearchRequests()
-            
-            // Set this as the current search term and add to active requests
-            currentSearchTerm = searchTerm.lowercased()
-            activeSearchRequests.insert(searchTerm.lowercased())
-            
+            // This is a search request from another device via mesh
+            // Don't track it as our own request - we're just acting as a proxy
             handleBitMedicSearch(extractedMessage)
             return
         }
@@ -276,23 +266,14 @@ class PingToServerHandler {
         print("Calling patient search API with GET: \(url)")
         showFeedbackMessage("API Call: GET \(url)")
         
-        // Cancel any previous API request
-        activeAPITask?.cancel()
-        
-        activeAPITask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
-                guard let strongSelf = self else { return }
-                
-                // Only process if this is still the current search term
-                if strongSelf.currentSearchTerm == searchTerm.lowercased() {
-                    strongSelf.handlePatientSearchResponse(data: data, response: response, error: error, searchTerm: searchTerm)
-                }
-                // Clear the task reference
-                strongSelf.activeAPITask = nil
+                // Always process proxy requests (they're not tracked as our own)
+                self?.handlePatientSearchResponse(data: data, response: response, error: error, searchTerm: searchTerm)
             }
         }
         
-        activeAPITask?.resume()
+        task.resume()
     }
     
     private func handlePatientSearchResponse(data: Data?, response: URLResponse?, error: Error?, searchTerm: String) {
